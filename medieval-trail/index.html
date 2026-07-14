@@ -1,0 +1,2402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medieval Fate — A Middle Ages RPG</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap');
+
+  :root {
+    --pixel: 4px;
+    --bg: #00101a;
+    --bg2: #000a12;
+    --panel: #001828;
+    --panel2: #001020;
+    --border: #1a5080;
+    --border2: #2a80cc;
+    --gold: #4ab0ff;
+    --gold2: #88ccff;
+    --text: #d0e8f8;
+    --text2: #90b8d8;
+    --dim: #406080;
+    --red: #cc2200;
+    --red2: #ff4422;
+    --green: #228822;
+    --green2: #44cc44;
+    --blue: #1a44aa;
+    --blue2: #4488ff;
+    --purple: #661188;
+    --purple2: #aa44ff;
+    --stone: #2a4a6a;
+    --stone2: #3a6a8a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; image-rendering: pixelated; }
+
+  body {
+    background: var(--bg2);
+    color: var(--text);
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  #gameover-chronicle::-webkit-scrollbar { width: 8px; }
+  #gameover-chronicle::-webkit-scrollbar-track { background: #000a12; }
+  #gameover-chronicle::-webkit-scrollbar-thumb { background: var(--border); border: 1px solid #000; }
+
+  /* ─── SCANLINE OVERLAY ─── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ─── PIXEL BORDER MIXIN ─── */
+  .px-border {
+    border: 4px solid var(--border);
+    box-shadow: 4px 4px 0 var(--bg2), inset 2px 2px 0 rgba(255,255,255,0.05);
+    outline: 2px solid var(--border2);
+    outline-offset: 2px;
+  }
+
+  /* ─── STARFIELD HEADER ─── */
+  #header {
+    text-align: center;
+    padding: 20px 16px 12px;
+    background: linear-gradient(180deg, #000 0%, #000a18 60%, var(--bg2) 100%);
+    border-bottom: 4px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, #fff8 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 50%, #fff6 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 15%, #fff8 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 60%, #fff5 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 80%, #fff7 0%, transparent 100%),
+      radial-gradient(1px 1px at 20% 70%, #fff6 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 35%, #fff8 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  #header h1 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(12px, 3vw, 22px);
+    color: var(--gold2);
+    text-shadow: 3px 3px 0 #003366, 6px 6px 0 #001a33, 0 0 20px rgba(74,176,255,0.5);
+    line-height: 1.5;
+    letter-spacing: 2px;
+  }
+
+  #header .subtitle {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(7px, 1.5vw, 10px);
+    color: var(--text2);
+    margin-top: 8px;
+    text-shadow: 2px 2px 0 #000;
+  }
+
+  /* ─── CASTLE PIXEL ART ─── */
+  .castle-art {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    margin: 10px auto 4px;
+  }
+
+  .castle-art svg { display: block; }
+
+  /* ─── LAYOUT ─── */
+  #app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  /* ─── PANELS ─── */
+  .panel {
+    background: var(--panel);
+    border: 4px solid var(--border);
+    box-shadow: 6px 6px 0 #000, inset 0 0 0 2px var(--panel2);
+    padding: 16px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute; top: 2px; left: 2px; right: 2px; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(74,176,255,0.2), transparent);
+  }
+
+  .panel-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: var(--gold);
+    text-shadow: 2px 2px 0 #000;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+    letter-spacing: 1px;
+  }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    padding: 10px 16px;
+    border: 3px solid;
+    cursor: pointer;
+    transition: transform 0.08s, box-shadow 0.08s;
+    position: relative;
+    letter-spacing: 1px;
+    display: inline-block;
+    text-transform: uppercase;
+  }
+
+  .btn:active { transform: translate(3px, 3px); box-shadow: none !important; }
+
+  .btn-gold {
+    background: #002a50;
+    border-color: var(--gold2);
+    color: var(--gold2);
+    box-shadow: 4px 4px 0 #001020;
+    text-shadow: 1px 1px 0 #000;
+  }
+  .btn-gold:hover { background: #003a6a; }
+
+  .btn-red {
+    background: #5a0800;
+    border-color: var(--red2);
+    color: #ffaa88;
+    box-shadow: 4px 4px 0 #2a0400;
+    text-shadow: 1px 1px 0 #000;
+  }
+  .btn-red:hover { background: #7a1000; }
+
+  .btn-green {
+    background: #0a3a0a;
+    border-color: var(--green2);
+    color: #aaffaa;
+    box-shadow: 4px 4px 0 #041804;
+    text-shadow: 1px 1px 0 #000;
+  }
+  .btn-green:hover { background: #144414; }
+
+  .btn-blue {
+    background: #0a1a4a;
+    border-color: var(--blue2);
+    color: #aaccff;
+    box-shadow: 4px 4px 0 #040a20;
+    text-shadow: 1px 1px 0 #000;
+  }
+  .btn-blue:hover { background: #142260; }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  /* ─── FORM ELEMENTS ─── */
+  input[type="text"], select {
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    background: #000a12;
+    border: 3px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    width: 100%;
+    box-shadow: inset 3px 3px 0 #000;
+    outline: none;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--gold2); }
+  select option { background: #00101a; }
+
+  label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--text2);
+    display: block;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+
+  .form-row { margin-bottom: 16px; }
+
+  /* ─── DICE ─── */
+  .dice-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .die {
+    width: 44px; height: 44px;
+    background: var(--panel2);
+    border: 3px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    color: var(--gold2);
+    box-shadow: 3px 3px 0 #000;
+    animation: dieRoll 0.5s ease-out;
+  }
+
+  @keyframes dieRoll {
+    0% { transform: rotate(-20deg) scale(0.8); opacity: 0.5; }
+    60% { transform: rotate(8deg) scale(1.1); }
+    100% { transform: rotate(0deg) scale(1); opacity: 1; }
+  }
+
+  /* ─── STAT BARS ─── */
+  .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .stat-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--text2);
+    width: 80px;
+    flex-shrink: 0;
+    letter-spacing: 0px;
+  }
+
+  .stat-bar-bg {
+    flex: 1;
+    height: 14px;
+    background: #0d0800;
+    border: 2px solid var(--stone);
+    position: relative;
+    box-shadow: inset 2px 2px 0 #000;
+  }
+
+  .stat-bar-fill {
+    height: 100%;
+    transition: width 0.4s ease;
+    position: relative;
+  }
+
+  .stat-bar-fill::after {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: rgba(255,255,255,0.15);
+  }
+
+  .stat-val {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--gold);
+    width: 50px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ─── CHARACTER SHEET ─── */
+  .char-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .char-stat {
+    background: var(--panel2);
+    border: 2px solid var(--stone);
+    padding: 8px 10px;
+  }
+
+  .char-stat .cs-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--dim);
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .char-stat .cs-value {
+    font-size: 22px;
+    color: var(--text);
+  }
+
+  /* ─── PORTRAIT ─── */
+  #portrait-box {
+    width: 80px; height: 80px;
+    background: var(--panel2);
+    border: 3px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    float: left;
+    margin: 0 16px 8px 0;
+    font-size: 40px;
+    box-shadow: 3px 3px 0 #000;
+  }
+
+  /* ─── LOG ─── */
+  #event-log {
+    max-height: 280px;
+    overflow-y: auto;
+    background: #000810;
+    border: 3px solid var(--stone);
+    padding: 10px;
+    box-shadow: inset 3px 3px 0 #000;
+  }
+
+  #event-log::-webkit-scrollbar { width: 8px; }
+  #event-log::-webkit-scrollbar-track { background: #000a12; }
+  #event-log::-webkit-scrollbar-thumb { background: var(--border); border: 1px solid #000; }
+
+  .log-entry {
+    padding: 5px 0;
+    border-bottom: 1px solid #001828;
+    font-size: 18px;
+    line-height: 1.4;
+  }
+
+  .log-entry:last-child { border-bottom: none; }
+
+  .log-success { color: var(--green2); }
+  .log-setback { color: #88ccff; }
+  .log-failure { color: var(--red2); }
+  .log-death   { color: #ff4488; font-family: 'Press Start 2P', monospace; font-size: 10px; }
+  .log-info    { color: var(--text2); }
+  .log-event   { color: var(--gold2); font-family: 'Press Start 2P', monospace; font-size: 9px; margin-top: 8px; }
+  .log-system  { color: var(--blue2); }
+
+  /* ─── MODIFIER BADGE ─── */
+  .mod-badge {
+    display: inline-block;
+    background: #001828;
+    border: 2px solid var(--border);
+    padding: 2px 6px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    margin: 2px;
+  }
+
+  .mod-pos { color: var(--green2); border-color: var(--green); }
+  .mod-neg { color: var(--red2); border-color: var(--red); }
+  .mod-neu { color: var(--gold2); }
+
+  /* ─── ROLL RESULT ─── */
+  #roll-result {
+    text-align: center;
+    padding: 16px;
+    margin-top: 12px;
+    display: none;
+    animation: flashIn 0.3s ease-out;
+  }
+
+  @keyframes flashIn {
+    0% { opacity: 0; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .roll-num {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 36px;
+    text-shadow: 4px 4px 0 #000;
+    display: block;
+  }
+
+  .roll-outcome {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 16px;
+    display: block;
+    text-shadow: 2px 2px 0 #000;
+    margin-bottom: 8px;
+  }
+
+  /* ─── ESTATE BADGE ─── */
+  .estate-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    border: 2px solid;
+  }
+
+  .estate-1 { background: #2a0066; border-color: var(--purple2); color: #cc88ff; }
+  .estate-2 { background: #002244; border-color: var(--gold2); color: var(--gold2); }
+  .estate-3 { background: #001020; border-color: var(--stone2); color: var(--text2); }
+
+  /* ─── PIXEL DIVIDER ─── */
+  .px-divider {
+    height: 4px;
+    background: repeating-linear-gradient(90deg, var(--border) 0px, var(--border) 8px, transparent 8px, transparent 16px);
+    margin: 12px 0;
+    opacity: 0.5;
+  }
+
+  /* ─── FLEX UTILS ─── */
+  .flex { display: flex; }
+  .flex-wrap { flex-wrap: wrap; }
+  .gap-8 { gap: 8px; }
+  .gap-12 { gap: 12px; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .mt-8 { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+  .mb-8 { margin-bottom: 8px; }
+  .w-full { width: 100%; }
+
+  /* ─── SCREENS ─── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ─── SCROLL TEXT ─── */
+  .typewriter-box {
+    background: #000810;
+    border: 3px solid var(--border);
+    padding: 16px;
+    font-size: 22px;
+    line-height: 1.6;
+    box-shadow: inset 3px 3px 0 #000;
+    min-height: 100px;
+  }
+
+  /* ─── DEAD OVERLAY ─── */
+  #dead-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+  }
+
+  #dead-overlay.show { display: flex; }
+
+  #dead-overlay h2 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(16px, 4vw, 28px);
+    color: var(--red2);
+    text-shadow: 4px 4px 0 #000;
+    margin-bottom: 20px;
+    animation: flickerRed 1s infinite;
+  }
+
+  @keyframes flickerRed {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  /* ─── TOOLTIP ─── */
+  .tooltip-wrap { position: relative; display: inline-block; }
+  .tooltip-wrap:hover .tooltip-content { display: block; }
+  .tooltip-content {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000a12;
+    border: 2px solid var(--border);
+    padding: 6px 10px;
+    font-size: 16px;
+    white-space: nowrap;
+    z-index: 50;
+    box-shadow: 3px 3px 0 #000;
+    color: var(--text);
+    pointer-events: none;
+  }
+
+  /* ─── PROGRESS NOTCHES ─── */
+  .notch-row {
+    display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px;
+  }
+  .notch {
+    width: 18px; height: 18px;
+    border: 2px solid var(--stone);
+    background: #0a0600;
+  }
+  .notch.filled { background: var(--red2); border-color: var(--red); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    .char-grid { grid-template-columns: 1fr; }
+    #portrait-box { float: none; margin: 0 auto 12px; }
+    body { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════ HEADER ══════ -->
+<div id="header">
+  <div class="castle-art">
+    <svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg" style="shape-rendering:crispEdges">
+      <!-- ground -->
+      <rect x="0" y="52" width="200" height="8" fill="#2a1800"/>
+      <!-- outer walls -->
+      <rect x="20" y="28" width="160" height="24" fill="#5a5040"/>
+      <!-- wall detail -->
+      <rect x="20" y="28" width="160" height="4" fill="#6a6050"/>
+      <!-- left tower -->
+      <rect x="16" y="12" width="36" height="40" fill="#4a4030"/>
+      <rect x="16" y="8" width="8" height="8" fill="#4a4030"/>
+      <rect x="32" y="8" width="8" height="8" fill="#4a4030"/>
+      <!-- right tower -->
+      <rect x="148" y="12" width="36" height="40" fill="#4a4030"/>
+      <rect x="148" y="8" width="8" height="8" fill="#4a4030"/>
+      <rect x="164" y="8" width="8" height="8" fill="#4a4030"/>
+      <!-- center tower -->
+      <rect x="76" y="4" width="48" height="48" fill="#5a5040"/>
+      <rect x="72" y="0" width="10" height="10" fill="#5a5040"/>
+      <rect x="88" y="0" width="10" height="10" fill="#5a5040"/>
+      <rect x="104" y="0" width="10" height="10" fill="#5a5040"/>
+      <!-- gate -->
+      <rect x="88" y="34" width="24" height="18" fill="#1a0e00"/>
+      <rect x="92" y="38" width="16" height="4" fill="#2a80cc" opacity="0.4"/>
+      <!-- windows -->
+      <rect x="24" y="20" width="8" height="6" fill="#1a3a6a"/>
+      <rect x="156" y="20" width="8" height="6" fill="#1a3a6a"/>
+      <rect x="82" y="10" width="8" height="6" fill="#1a3a6a"/>
+      <rect x="110" y="10" width="8" height="6" fill="#1a3a6a"/>
+      <!-- flags -->
+      <rect x="26" y="4" width="2" height="10" fill="#2a80cc"/>
+      <rect x="28" y="4" width="8" height="6" fill="#003399"/>
+      <rect x="168" y="4" width="2" height="10" fill="#2a80cc"/>
+      <rect x="170" y="4" width="8" height="6" fill="#003399"/>
+      <rect x="98" y="-6" width="2" height="12" fill="#2a80cc"/>
+      <rect x="100" y="-6" width="10" height="7" fill="#4ab0ff"/>
+    </svg>
+  </div>
+  <h1>⚔ MEDIEVAL FATE ⚔</h1>
+  <div class="subtitle">A Middle Ages Survival RPG</div>
+</div>
+
+<!-- ══════ APP ══════ -->
+<div id="app">
+
+  <!-- ──── TITLE SCREEN ──── -->
+  <div id="screen-title" class="screen active">
+    <div class="panel">
+      <div class="panel-title">📜 THE YEAR IS 1347 AD</div>
+      <div class="typewriter-box" id="intro-text">
+        Welcome, traveler. You are about to begin your life in Medieval Europe.<br><br>
+        The world is harsh. Disease, famine, and war threaten all — from the lowest serf to the mightiest noble.<br><br>
+        Your fate is determined by the dice of fortune. Will you survive?<br><br>
+        <span style="color:var(--gold2)">✦ Discover your place in the world and begin your journey ✦</span>
+      </div>
+      <div class="px-divider"></div>
+      <div style="text-align:center">
+        <button class="btn btn-gold" onclick="showScreen('screen-create')">▶ BEGIN YOUR JOURNEY</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">📖 HOW TO PLAY</div>
+      <div style="font-size:19px; line-height:1.7; color:var(--text2)">
+        <span style="color:var(--gold2)">►</span> Reveal your character's place in Medieval society — your birth determines your fate.<br>
+        <span style="color:var(--gold2)">►</span> Each year, a new event will challenge your character's survival.<br>
+        <span style="color:var(--gold2)">►</span> Fate decides your outcome: <span style="color:var(--green2)">Success</span>, <span style="color:#88ccff">Partial Success</span>, or <span style="color:var(--red2)">Failure</span>. Your station in life and circumstances affect your chances.<br>
+        <span style="color:var(--gold2)">►</span> Three hardships = death. Run out of money = death within two years.<br>
+        <span style="color:var(--gold2)">►</span> The Teacher is always the King who owns the land.
+      </div>
+    </div>
+  </div>
+
+  <!-- ──── CHARACTER CREATION ──── -->
+  <div id="screen-create" class="screen">
+    <div class="panel">
+      <div class="panel-title">⚜ CHARACTER CREATION</div>
+
+      <div class="form-row">
+        <label>CHARACTER NAME</label>
+        <input type="text" id="char-name" placeholder="Enter your name..." maxlength="24">
+      </div>
+
+      <div class="form-row">
+        <label>GENDER</label>
+        <select id="char-gender" onchange="resetRolls()">
+          <option value="">— Choose Gender —</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+
+      <div id="roll-section" style="display:none">
+        <div class="px-divider"></div>
+        <div class="panel-title" style="font-size:9px">✦ DISCOVER YOUR FATE</div>
+
+        <!-- OCCUPATION -->
+        <div class="form-row">
+          <label>OCCUPATION</label>
+          <div class="flex items-center gap-8">
+            <button class="btn btn-blue" onclick="rollOccupation()" id="btn-roll-occ">✦ REVEAL</button>
+            <div id="occ-result" style="font-size:20px; color:var(--gold2)"></div>
+          </div>
+        </div>
+
+        <!-- CHILDREN -->
+        <div class="form-row" id="row-children" style="display:none">
+          <label>CHILDREN</label>
+          <div class="flex items-center gap-8">
+            <button class="btn btn-blue" onclick="rollChildren()" id="btn-roll-children">✦ REVEAL</button>
+            <div id="children-result" style="font-size:20px; color:var(--gold2)"></div>
+          </div>
+        </div>
+
+        <!-- SPOUSE -->
+        <div class="form-row" id="row-spouse" style="display:none">
+          <label>SPOUSE</label>
+          <div class="flex items-center gap-8">
+            <button class="btn btn-blue" onclick="rollSpouse()" id="btn-roll-spouse">✦ REVEAL</button>
+            <div id="spouse-result" style="font-size:20px; color:var(--gold2)"></div>
+          </div>
+        </div>
+
+        <!-- LITERACY -->
+        <div class="form-row" id="row-literacy" style="display:none">
+          <label>EDUCATION <span style="font-size:14px;color:var(--dim)">(nobility & clergy only)</span></label>
+          <div class="flex items-center gap-8">
+            <button class="btn btn-blue" onclick="rollLiteracy()" id="btn-roll-lit">✦ REVEAL</button>
+            <div id="lit-result" style="font-size:20px; color:var(--gold2)"></div>
+          </div>
+        </div>
+
+        <!-- WEAPON -->
+        <div class="form-row" id="row-weapon" style="display:none">
+          <label>WEAPON <span style="font-size:14px;color:var(--dim)">(nobility only)</span></label>
+          <div class="flex items-center gap-8">
+            <button class="btn btn-blue" onclick="rollWeapon()" id="btn-roll-wpn">✦ REVEAL</button>
+            <div id="wpn-result" style="font-size:20px; color:var(--gold2)"></div>
+          </div>
+        </div>
+
+        <!-- WEALTH -->
+        <div class="form-row" id="row-income" style="display:none">
+          <label id="income-label">STARTING WEALTH</label>
+          <div class="flex items-center gap-8">
+            <button class="btn btn-blue" onclick="rollIncome()" id="btn-roll-inc">✦ REVEAL</button>
+            <div id="inc-result" style="font-size:20px; color:var(--gold2)"></div>
+          </div>
+        </div>
+
+        <div id="create-btn-wrap" style="display:none; text-align:center; margin-top:16px">
+          <button class="btn btn-gold" onclick="createCharacter()">⚔ BEGIN LIFE ⚔</button>
+        </div>
+      </div>
+
+      <div id="gender-prompt" style="text-align:center; color:var(--dim); padding:20px; font-size:18px">
+        Choose your gender to discover your fate...
+      </div>
+    </div>
+  </div>
+
+  <!-- ──── MAIN GAME ──── -->
+  <div id="screen-game" class="screen">
+
+    <!-- Character Panel -->
+    <div class="panel">
+      <div class="flex justify-between items-center mb-8">
+        <div class="panel-title" style="margin-bottom:0">⚔ YOUR CHARACTER</div>
+        <div id="year-display" style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--dim)">YEAR 1 OF LIFE</div>
+      </div>
+
+      <div>
+        <div id="portrait-box">🧑</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:14px;color:var(--gold2)" id="char-display-name">NAME</div>
+        <div style="margin:6px 0" id="char-display-role"></div>
+        <div style="font-size:18px;color:var(--text2)" id="char-display-details"></div>
+        <div style="clear:both"></div>
+      </div>
+
+      <div class="px-divider"></div>
+
+      <div class="char-grid">
+        <div class="char-stat">
+          <div class="cs-label">💰 MONEY</div>
+          <div class="cs-value" id="stat-money">0</div>
+        </div>
+        <div class="char-stat">
+          <div class="cs-label">👨‍👩‍👧 CHILDREN</div>
+          <div class="cs-value" id="stat-children">0</div>
+        </div>
+        <div class="char-stat">
+          <div class="cs-label">⚔ WEAPON</div>
+          <div class="cs-value" id="stat-weapon">None</div>
+        </div>
+        <div class="char-stat">
+          <div class="cs-label">📖 LITERACY</div>
+          <div class="cs-value" id="stat-literacy">—</div>
+        </div>
+        <div class="char-stat">
+          <div class="cs-label">💀 HARDSHIPS</div>
+          <div id="stat-failures">
+            <div class="notch-row">
+              <div class="notch" id="notch0"></div>
+              <div class="notch" id="notch1"></div>
+              <div class="notch" id="notch2"></div>
+            </div>
+          </div>
+        </div>
+        <div class="char-stat">
+          <div class="cs-label">🌟 FORTUNE</div>
+          <div class="cs-value" id="stat-modifier"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current Event Panel -->
+    <div class="panel" id="event-panel">
+      <div class="panel-title">⚠ CURRENT EVENT</div>
+      <div id="event-name" style="font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold2);margin-bottom:10px"></div>
+      <div id="event-desc" class="typewriter-box" style="font-size:19px;line-height:1.6;min-height:80px"></div>
+
+      <div id="roll-result" style="display:none;margin-top:12px;animation:flashIn 0.3s ease-out">
+        <span class="roll-outcome" id="roll-outcome-label"></span>
+        <div id="roll-consequence" style="font-size:19px;color:var(--text);margin-top:10px;padding:12px;background:#000810;border:2px solid var(--stone)"></div>
+      </div>
+
+      <div class="mt-12 flex gap-8 flex-wrap">
+        <button class="btn btn-gold" id="btn-roll-event" onclick="rollForEvent()">⚔ FACE YOUR FATE</button>
+        <button class="btn btn-green" id="btn-next-event" onclick="nextEvent()" style="display:none">▶ NEXT YEAR</button>
+      </div>
+    </div>
+
+    <!-- Event Log -->
+    <div class="panel">
+      <div class="panel-title">📜 CHRONICLE OF YOUR LIFE</div>
+      <div id="event-log"></div>
+    </div>
+  </div>
+
+  <!-- ──── GAME OVER ──── -->
+  <div id="screen-gameover" class="screen">
+    <div class="panel" style="text-align:center">
+      <div style="font-size:64px;margin-bottom:16px">💀</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:18px;color:var(--red2);text-shadow:3px 3px 0 #000;margin-bottom:12px">YOU HAVE DIED</div>
+      <div id="death-message" style="font-size:22px;color:var(--text2);margin-bottom:20px;padding:12px;background:#000810;border:3px solid var(--red)"></div>
+      <div id="obituary" style="font-size:20px;color:var(--dim);margin-bottom:24px;padding:12px;background:var(--panel2);border:2px solid var(--stone);text-align:left"></div>
+      <div class="panel-title" style="text-align:left">📜 CHRONICLE OF YOUR LIFE</div>
+      <div id="gameover-chronicle" style="max-height:360px;overflow-y:auto;background:#000810;border:3px solid var(--stone);padding:10px;margin-bottom:20px;text-align:left"></div>
+      <div class="flex gap-8 justify-center flex-wrap">
+        <button class="btn btn-gold" onclick="showScreen('screen-create'); resetGame()">🔄 NEW CHARACTER</button>
+        <button class="btn btn-blue" onclick="showScreen('screen-title'); resetGame()">🏠 TITLE SCREEN</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- DEAD OVERLAY (redundant flashy version) -->
+<div id="dead-overlay">
+  <h2>☠ YOUR CHARACTER HAS PERISHED ☠</h2>
+  <p style="font-size:22px;color:var(--text2);margin-bottom:20px" id="dead-overlay-msg"></p>
+  <button class="btn btn-gold" onclick="document.getElementById('dead-overlay').classList.remove('show'); showScreen('screen-gameover')">SEE OBITUARY</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  DATA TABLES
+// ══════════════════════════════════════════════════════════════
+
+const OCCUPATIONS_MALE = [
+  null, // index 0 unused (1-indexed)
+  {job:"Serf", estate:3}, {job:"Serf", estate:3}, {job:"Serf", estate:3},
+  {job:"Serf", estate:3}, {job:"Serf", estate:3}, {job:"Serf", estate:3},
+  {job:"Serf", estate:3}, {job:"Serf", estate:3},
+  {job:"Skilled Laborer", estate:3},
+  {job:"Physician", estate:3},
+  {job:"Clerk", estate:3},
+  {job:"Squire", estate:2}, {job:"Squire", estate:2},
+  {job:"Friar", estate:1},
+  {job:"Monk", estate:1}, {job:"Monk", estate:1},
+  {job:"Priest", estate:1},
+  {job:"Knight", estate:2}, {job:"Knight", estate:2},
+  {job:"Noble", estate:2}
+];
+
+const OCCUPATIONS_FEMALE = [
+  null,
+  {job:"Serf", estate:3}, {job:"Serf", estate:3}, {job:"Serf", estate:3},
+  {job:"Serf", estate:3}, {job:"Serf", estate:3}, {job:"Serf", estate:3},
+  {job:"Serf", estate:3}, {job:"Serf", estate:3}, {job:"Serf", estate:3},
+  {job:"Serf", estate:3},
+  {job:"Clerk", estate:3}, {job:"Clerk", estate:3},
+  {job:"Priestess", estate:1},
+  {job:"Physician", estate:3},
+  {job:"Priestess", estate:1},
+  {job:"Daughter of a Noble", estate:2}, {job:"Daughter of a Noble", estate:2},
+  {job:"Daughter of a Noble", estate:2},
+  {job:"Noble Lady", estate:2}, {job:"Noble Lady", estate:2}
+];
+
+const CHILDREN_TABLE = [
+  null, 0, [1,2], [1,2], [3,4], [5,6], 7 // 1d6
+];
+
+const LITERACY_TABLE = [
+  null,
+  "Not Literate", "Not Literate", "Barely Literate",
+  "Limited Literacy", "Moderate Literacy", "Very Literate"
+];
+
+const WEAPONS_TABLE = [
+  null, "Knife", "Bow", "Short Sword", "Mace", "Axe", "Great Sword"
+];
+
+const WEAPON_EMOJI = {
+  "Knife":"🗡️", "Bow":"🏹", "Short Sword":"⚔️",
+  "Mace":"🪓", "Axe":"🪓", "Great Sword":"⚔️", "None":"—"
+};
+
+const ESTATE_MODIFIERS = {1: 2, 2: 1, 3: 0};
+
+const PORTRAITS = {
+  male: {
+    1: "🧎", 2: "🧎", 3: "⛏️",
+    Physician: "🩺", Clerk: "📜",
+    Squire: "🛡️", Friar: "🙏", Monk: "🙏", Priest: "⛪",
+    Knight: "🗡️", Noble: "👑"
+  },
+  female: {
+    3: "🧎", Clerk: "📜", Priestess: "⛪",
+    Physician: "🩺", 2: "👒", Noble: "👑"
+  }
+};
+
+// ══════════════════════════════════════════════════════════════
+//  EVENTS
+// ══════════════════════════════════════════════════════════════
+
+const ALL_EVENTS = [
+  {
+    id:"famine",
+    name:"⚡ FAMINE",
+    desc:"The harvest has failed across the land. Food stores are depleted and the people suffer. All must make do with less.",
+    affects: [1,2,3],
+    exemptEstate: [1],
+    exemptMsg: "As a member of the Church, you are shielded from the famine's worst effects.",
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        let loss = Math.ceil(c.money/2);
+        c.money = Math.max(0, c.money - loss);
+        return `You lose half your money (${loss} gold). Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss = Math.ceil(c.money/4);
+        c.money = Math.max(0, c.money - loss);
+        return `You lose a quarter of your money (${loss} gold). Remaining: ${c.money}`;
+      },
+      success: () => "You manage your resources well and survive the famine without major loss."
+    }
+  },
+  {
+    id:"church_scandal",
+    name:"⛪ CHURCH SCANDAL",
+    desc:"A great scandal has rocked the local church! To atone and restore peace, all must pay a tithe.",
+    affects: [1,2,3],
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        let loss = Math.max(5, Math.ceil(c.money * 0.3));
+        c.money = Math.max(0, c.money - loss);
+        return `You must pay a large tithe of ${loss} gold in coin. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        return `You pay with goods and labor instead of coin — no money lost, but you are exhausted. -1 to next roll.`;
+      },
+      success: () => "You talk your way out of the worst of the tithe. Life continues normally."
+    }
+  },
+  {
+    id:"bandits",
+    name:"🗡 BANDIT ATTACK",
+    desc:"A roving band of thieves has swept through the town! Chaos reigns in the streets.",
+    affects: [1,2,3],
+    exemptEstate: [2],
+    exemptMsg: "You are protected behind your castle walls. The bandits cannot reach you.",
+    modifiers: [
+      {label:"+2 if armed", condition:(c)=>c.weapon && c.weapon!=="None", value:2}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let childDies = c.children > 0 && Math.random()>0.5;
+        if(childDies) { c.children--; return "A family member is killed in the attack! Children remaining: "+c.children; }
+        let loss = Math.ceil(c.money * 0.3);
+        c.money = Math.max(0,c.money-loss);
+        return `You are badly injured and robbed of ${loss} gold. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss = Math.ceil(c.money * 0.15);
+        c.money = Math.max(0,c.money-loss);
+        return `The bandits steal ${loss} gold from you. Remaining: ${c.money}`;
+      },
+      success: () => "You defend yourself or hide in time. The bandits move on."
+    }
+  },
+  {
+    id:"false_prophet",
+    name:"🔮 FALSE PROPHET",
+    desc:"A roaming 'prophet' is preaching doom and demanding payment to stop the apocalypse. The superstitious townsfolk are frightened.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+1 if literate", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss = Math.ceil(c.money * 0.25);
+        c.money = Math.max(0,c.money-loss);
+        if(c.children>0 && Math.random()>0.6) {
+          c.children--;
+          return `A family member joins the prophet's cult! And you lose ${loss} gold. Children: ${c.children}`;
+        }
+        return `You are deceived and pay ${loss} gold to the prophet. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss = Math.min(5, Math.ceil(c.money * 0.1));
+        c.money = Math.max(0,c.money-loss);
+        return `You give a small offering of ${loss} gold to be rid of the prophet. Remaining: ${c.money}`;
+      },
+      success: () => "You see through the charlatan's tricks and send them packing."
+    }
+  },
+  {
+    id:"plague",
+    name:"☠ BLACK PLAGUE",
+    desc:"The Black Death has come to your region. No one — noble, serf, or priest — is safe from its terrible reach.",
+    affects: [1,2,3],
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        if(c.children>0) {
+          c.children--;
+          return `A member of your family has succumbed to the plague. Children: ${c.children}`;
+        }
+        return "Someone close to you dies of the plague. Grief weighs heavily upon you.";
+      },
+      setback: (c) => {
+        return "You fall ill with plague but survive, weakened. -1 to your next 2 rolls.";
+      },
+      success: () => "By God's grace (or luck), the plague passes your household."
+    }
+  },
+  {
+    id:"war",
+    name:"⚔ WARRING KINGDOMS",
+    desc:"The neighboring kingdom has invaded! All able bodies are called to support the war effort.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+2 if armed", condition:(c)=>c.weapon && c.weapon!=="None", value:2}
+    ],
+    outcomes: {
+      failure: (c) => {
+        if(Math.random()>0.5 || c.children===0) {
+          return "You fall in battle. YOUR CHARACTER DIES.";
+        }
+        c.children--;
+        return `A family member is killed in the conflict. Children: ${c.children}`;
+      },
+      setback: (c) => {
+        if(c.weapon && c.weapon!=="None") {
+          c.weapon = "None";
+          return "Your weapon is destroyed in battle. You return home, but unarmed.";
+        }
+        return "You are injured in the conflict and return home battered. -1 to next roll.";
+      },
+      success: () => "You serve bravely and return home unharmed."
+    }
+  },
+  {
+    id:"pilgrimage",
+    name:"✝ HOLY PILGRIMAGE",
+    desc:"All members of the 1st and 2nd estates are called to make a pilgrimage to a holy site.",
+    affects: [1,2],
+    exemptEstate:[3],
+    exemptMsg: "As a commoner of the 3rd estate, you are not required to make this journey.",
+    modifiers: [
+      {label:"+1 if armed", condition:(c)=>c.weapon && c.weapon!=="None", value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        if(c.weapon && c.weapon!=="None") {
+          let wpn = c.weapon;
+          c.weapon = "None";
+          return `You are attacked on the pilgrimage road and lose your ${wpn}. You barely escape with your life.`;
+        }
+        return "You are attacked on the road. YOUR CHARACTER DIES on the pilgrimage.";
+      },
+      setback: (c) => {
+        let loss = Math.ceil(c.money * 0.2);
+        c.money = Math.max(0,c.money-loss);
+        return `The journey costs more than expected. You spend ${loss} extra gold. Remaining: ${c.money}`;
+      },
+      success: () => "You complete the pilgrimage and return with spiritual renewal and intact finances."
+    }
+  },
+  {
+    id:"inheritance",
+    name:"📜 INHERITANCE CRISIS",
+    desc:"There is a claim of false parentage among the 2nd estate! Someone questions the legitimacy of noble bloodlines.",
+    affects: [2],
+    exemptEstate:[1,3],
+    exemptMsg: "This dispute among the nobility does not concern you.",
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        c.estate = 3;
+        c.estateModifier = ESTATE_MODIFIERS[3];
+        return "Your noble status is stripped away! You are cast into the 3rd estate. Recalculate your modifier.";
+      },
+      setback: (c) => {
+        let loss = 20;
+        c.money = Math.max(0,c.money-loss);
+        return `You pay 20 gold to silence the accuser. Remaining: ${c.money}`;
+      },
+      success: () => "Your lineage is proven true. Your noble standing is secure."
+    }
+  },
+  {
+    id:"church_state",
+    name:"⛪ CHURCH VS STATE",
+    desc:"A religious leader exerts political power. The people are divided — is this divine intervention or blasphemy?",
+    affects: [1],
+    exemptEstate:[2,3],
+    exemptMsg: "As a layperson, the internal affairs of the Church hierarchy do not threaten you directly.",
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        return "You backed the wrong faction and are EXCOMMUNICATED from the Church! You lose all estate benefits.";
+      },
+      setback: (c) => {
+        let loss = Math.ceil(c.money * 0.15);
+        c.money = Math.max(0,c.money-loss);
+        return `You must perform expensive acts of repentance, costing ${loss} gold. Remaining: ${c.money}`;
+      },
+      success: () => "You navigate the political waters wisely and emerge unscathed."
+    }
+  },
+  {
+    id:"revolt",
+    name:"🔥 PEASANT REVOLT",
+    desc:"The serfs have risen in rebellion, driven by starvation and oppression! Fire lights the horizon.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+1 if armed", condition:(c)=>c.weapon && c.weapon!=="None", value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        if(c.estate===1) {
+          let loss = Math.ceil(c.money * 0.67);
+          c.money = Math.max(0,c.money-loss);
+          return `Your church burns to the ground! You lose ⅔ of your gold (${loss}). Remaining: ${c.money}`;
+        }
+        if(c.estate===2) {
+          return "Your castle is overrun! You sustain a major injury. -1 to ALL future rolls.";
+        }
+        if(c.children>0) {
+          c.children--;
+          return `The revolt fails and your family suffers in retribution. A family member is killed. Children: ${c.children}`;
+        }
+        return "The revolt fails. You are killed in retribution. YOUR CHARACTER DIES.";
+      },
+      setback: (c) => {
+        if(c.estate===1) {
+          let loss = Math.ceil(c.money * 0.33);
+          c.money = Math.max(0,c.money-loss);
+          return `Your church is damaged. You lose ⅓ of your gold (${loss}). Remaining: ${c.money}`;
+        }
+        if(c.estate===2) {
+          let loss = 10;
+          c.money = Math.max(0,c.money-loss);
+          return `Your castle walls need repair. You spend 10 gold. Remaining: ${c.money}`;
+        }
+        if(c.weapon && c.weapon!=="None") {
+          c.weapon = "None";
+          return "Your weapon breaks in the rebellion. You are unarmed.";
+        }
+        return "The rebellion ends badly, but you slip away and survive.";
+      },
+      success: () => "You weather the revolt and restore order (or escape unnoticed)."
+    }
+  },
+  {
+    id:"drought",
+    name:"☀ DROUGHT",
+    desc:"No rain has fallen for weeks. The crops wither, the livestock perish. The land grows desperate.",
+    affects: [1,2,3],
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        if(c.children>0) {
+          c.children--;
+          return `A family member dies of thirst and starvation. Children: ${c.children}`;
+        }
+        return "A loved one perishes in the drought. Grief takes hold.";
+      },
+      setback: (c) => {
+        c.money = Math.max(0,c.money-2);
+        return `The drought costs you 2 gold to secure water. Remaining: ${c.money}`;
+      },
+      success: () => "You manage to find water and keep your household alive."
+    }
+  },
+  {
+    id:"dysentery",
+    name:"💧 DYSENTERY OUTBREAK",
+    desc:"The drinking water has been contaminated. Dysentery is spreading rapidly through the community.",
+    affects: [1,2,3],
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        if(c.children>0) {
+          c.children--;
+          return `The illness claims a family member. Children: ${c.children}`;
+        }
+        return "You lose someone close to the water sickness.";
+      },
+      setback: (c) => {
+        return "You fall ill but recover. Weakened constitution — -1 to next 2 rolls.";
+      },
+      success: () => "You find clean water in time and avoid the worst of the illness."
+    }
+  },
+  {
+    id:"smallpox",
+    name:"🤒 SMALLPOX OUTBREAK",
+    desc:"Smallpox has broken out and the quarantine set by the crown has failed miserably.",
+    affects: [1,2,3],
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        if(c.children>0) {
+          c.children--;
+          return `Smallpox claims a family member. Children: ${c.children}`;
+        }
+        return "The pox takes someone you love.";
+      },
+      setback: (c) => {
+        return "You contract smallpox but survive, though badly scarred and weakened. -1 to next 2 rolls.";
+      },
+      success: () => "Your household avoids the smallpox by God's mercy or sheer luck."
+    }
+  },
+  {
+    id:"land_dispute",
+    name:"🏰 FIEFDOM LAND DISPUTE",
+    desc:"A neighboring lord claims the land — and all who live upon it — belongs to him. The legal battle rages.",
+    affects: [1,2,3],
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        let loss = Math.ceil(c.money * 0.33);
+        c.money = Math.max(0,c.money-loss);
+        return `In the conflict, you lose ⅓ of your gold (${loss}). Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss = Math.ceil(c.money / 6);
+        c.money = Math.max(0,c.money-loss);
+        return `You lose ⅙ of your gold (${loss}) in legal costs. Remaining: ${c.money}`;
+      },
+      success: () => "The land dispute resolves in your lord's favor. Your property is safe."
+    }
+  },
+  {
+    id:"childbirth",
+    name:"🤱 CHILDBIRTH COMPLICATION",
+    desc:"A dangerous complication has arisen during childbirth. Prayers are offered, but God's will is uncertain.",
+    affects: [1,2,3],
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        if(c.gender==="female") {
+          return "The complications prove fatal. YOUR CHARACTER DIES in childbirth.";
+        }
+        if(!c.spouseAlive) return "Your spouse has already passed. You grieve for the child.";
+        c.spouseAlive = false;
+        return "Your spouse does not survive the birth. You are left to raise your family alone.";
+      },
+      setback: (c) => {
+        return "The child is born stillborn. Grief and sorrow fill your household.";
+      },
+      success: () => "Mother and child survive, and a new life enters the world."
+    }
+  },
+  {
+    id:"hunting",
+    name:"🏹 HUNTING ACCIDENT",
+    desc:"Something goes terribly wrong during a hunt in the forest. The woods are dangerous today.",
+    affects: [2,3],
+    exemptEstate:[1],
+    exemptMsg:"As a member of the clergy, you do not participate in hunting.",
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        if(Math.random()>0.5) return "You are gravely injured. -2 to your next 3 rolls. (Or death — at teacher's discretion)";
+        return "The hunting accident proves fatal. YOUR CHARACTER DIES.";
+      },
+      setback: (c) => {
+        let loss = Math.ceil(c.money * 0.1) + 2;
+        c.money = Math.max(0,c.money-loss);
+        return `You are injured and must pay ${loss} gold for treatment. Remaining: ${c.money}`;
+      },
+      success: () => "A close call, but you return from the hunt unharmed and with food."
+    }
+  },
+  {
+    id:"smithing",
+    name:"🔨 SMITHING NEEDS",
+    desc:"All weapons must be honed and maintained by the local smithy. The blacksmith's forge glows hot.",
+    affects: [2,3],
+    exemptEstate:[1],
+    exemptMsg:"The clergy have no weapons to maintain.",
+    modifiers: [
+      {label:"+3 if Skilled Laborer is in class", condition:(c)=>false, value:3, alwaysShow:true},
+      {label:"+1 for 2nd estate", condition:(c)=>c.estate===2, value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        if(c.weapon && c.weapon!=="None") {
+          let loss = Math.ceil(c.money * 0.15);
+          c.money = Math.max(0,c.money-loss);
+          let wpn = c.weapon;
+          if(Math.random()>0.5) {
+            c.weapon = "None";
+            return `Your ${wpn} breaks beyond repair. You are now unarmed.`;
+          }
+          return `Your weapon needs more work. You pay ${loss} gold for repairs. Remaining: ${c.money}`;
+        }
+        return "You have no weapon to maintain, but the forge demands tribute anyway. Lose 1 gold.";
+      },
+      setback: (c) => {
+        return "Your weapon cannot be used on the next challenge requiring arms. The smithy needs more time.";
+      },
+      success: () => "Your weapon is honed to a fine edge. You are well-armed."
+    }
+  },
+
+  // ── 17 NEW EVENTS ──────────────────────────────────────────
+
+  {
+    id:"trial_ordeal",
+    name:"⚖ TRIAL BY ORDEAL",
+    desc:"The local magistrate has accused someone in your community of a crime. The Church demands a trial by ordeal — hot coals, boiling water, burning iron — to determine guilt. No one is above suspicion.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+1 if literate", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        if(c.estate===1) {
+          c.penalties.push({value:-1, turnsLeft:2});
+          return "The accused is found innocent and your authority is questioned. -1 to next 2 rolls.";
+        }
+        if(c.estate===2) {
+          let loss = 15; c.money = Math.max(0,c.money-loss);
+          return `You are implicated despite your rank and lose ${loss} gold in bribes. Remaining: ${c.money}`;
+        }
+        let loss = Math.ceil(c.money*0.33);
+        c.money = Math.max(0,c.money-loss);
+        c.penalties.push({value:-1, turnsLeft:3});
+        return `You are branded a criminal. Lose ⅓ gold (${loss}) and -1 to next 3 rolls. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        if(c.estate===2) {
+          let loss=8; c.money=Math.max(0,c.money-loss);
+          return `You pay ${loss} gold to bribe the magistrate. Remaining: ${c.money}`;
+        }
+        c.penalties.push({value:-1, turnsLeft:1});
+        return "The ordeal leaves a minor injury. -1 to next roll.";
+      },
+      success: () => "You are acquitted. Your name is cleared and life continues."
+    }
+  },
+
+  {
+    id:"flooding",
+    name:"🌊 FLOODING OF THE FIELDS",
+    desc:"Heavy rains have caused the river to burst its banks, swallowing crops and livestock whole. The fields that feed the village are underwater.",
+    affects: [2,3],
+    exemptEstate:[1],
+    exemptMsg:"Your church sits on higher ground. The flood does not reach your doors.",
+    modifiers: [
+      {label:"+1 for 2nd estate", condition:(c)=>c.estate===2, value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=Math.ceil(c.money*0.5);
+        c.money=Math.max(0,c.money-loss);
+        if(c.children>0){c.children--; return `A family member drowns in the flood and you lose ${loss} gold. Children: ${c.children}. Remaining: ${c.money}`;}
+        return `The flood destroys your stores. You lose half your gold (${loss}). Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss=Math.ceil(c.money*0.25);
+        c.money=Math.max(0,c.money-loss);
+        return `Crops are ruined. You lose ¼ of your gold (${loss}). Remaining: ${c.money}`;
+      },
+      success: () => "You move to higher ground in time and save most of your stores."
+    }
+  },
+
+  {
+    id:"merchant",
+    name:"📣 TRAVELING MERCHANT",
+    desc:"A merchant caravan has arrived bringing exotic goods, spices, and news from distant lands. Trade is opportunity — but also risk.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+1 if literate (read contracts)", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:1},
+      {label:"+1 for 2nd estate", condition:(c)=>c.estate===2, value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=Math.ceil(c.money*0.25);
+        c.money=Math.max(0,c.money-loss);
+        return `You are swindled with counterfeit goods. Lose ¼ gold (${loss}). Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss=5; c.money=Math.max(0,c.money-loss);
+        return `You overspend on curiosities and lose ${loss} gold. Remaining: ${c.money}`;
+      },
+      success: (c) => {
+        let gain = c.estate===3 ? 10 : 20;
+        c.money+=gain;
+        return `A shrewd trade pays off handsomely. You gain ${gain} gold. Total: ${c.money}`;
+      }
+    }
+  },
+
+  {
+    id:"interdict",
+    name:"🔔 INTERDICT PLACED ON THE VILLAGE",
+    desc:"The bishop has placed an interdict on your village — no sacraments, no church services, no Christian burial. Spiritual terror ripples through every household.",
+    affects: [1,2,3],
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        if(c.estate===1) {
+          c.penalties.push({value:-2, turnsLeft:3});
+          return "You are blamed for the interdict and stripped of influence. -2 to next 3 rolls.";
+        }
+        if(c.children>0){c.children--;return `Panic causes a family member to fall gravely ill and perish. Children: ${c.children}`;}
+        c.penalties.push({value:-2, turnsLeft:2});
+        return "The spiritual terror breaks your household. -2 to next 2 rolls.";
+      },
+      setback: (c) => {
+        if(c.estate===1){
+          let loss=10; c.money=Math.max(0,c.money-loss);
+          return `You perform costly rituals to restore faith, losing ${loss} gold. Remaining: ${c.money}`;
+        }
+        let loss=5; c.money=Math.max(0,c.money-loss);
+        return `You pay ${loss} gold to a traveling friar for spiritual protection. Remaining: ${c.money}`;
+      },
+      success: () => "You weather the spiritual crisis with your faith and household intact."
+    }
+  },
+
+  {
+    id:"manor_court",
+    name:"🏛 MANOR COURT SUMMONS",
+    desc:"You have been summoned before the lord's manor court to settle a dispute over land, debt, or a neighbor's accusation. The law favors the powerful.",
+    affects: [2,3],
+    exemptEstate:[1],
+    exemptMsg:"The clergy have their own courts. You are beyond the reach of the manor magistrate.",
+    modifiers: [
+      {label:"+2 for 2nd estate (courts favor nobles)", condition:(c)=>c.estate===2, value:2},
+      {label:"+1 if literate", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=10; c.money=Math.max(0,c.money-loss);
+        return `The ruling goes against you. Pay ${loss} gold or face further consequences. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss=5; c.money=Math.max(0,c.money-loss);
+        return `You lose the dispute but only pay ${loss} gold in settlement. Remaining: ${c.money}`;
+      },
+      success: () => "The ruling goes in your favor. Justice, for once, is served."
+    }
+  },
+
+  {
+    id:"great_winter",
+    name:"❄ GREAT WINTER",
+    desc:"A brutal winter unlike any in living memory has descended on Europe. Fuel, food, and warmth are scarce for all.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+1 for 2nd estate (stone keeps)", condition:(c)=>c.estate===2, value:1},
+      {label:"+1 for 1st estate (monastery stores)", condition:(c)=>c.estate===1, value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        if(c.children>0){c.children--;return `A family member freezes or starves. Children: ${c.children}`;}
+        return "Someone close to you does not survive the winter.";
+      },
+      setback: (c) => {
+        let loss=3; c.money=Math.max(0,c.money-loss);
+        return `You spend ${loss} gold on firewood and provisions to survive. Remaining: ${c.money}`;
+      },
+      success: () => "Your household endures the bitter cold and emerges in spring, intact."
+    }
+  },
+
+  {
+    id:"royal_decree",
+    name:"✒ ROYAL DECREE",
+    desc:"The king has issued a new decree — a tax, a conscription order, or a new law — that reshapes daily life. Those with connections fare better than those without.",
+    affects: [2,3],
+    exemptEstate:[1],
+    exemptMsg:"The clergy are traditionally exempt from royal taxation. The decree does not apply to you.",
+    modifiers: [
+      {label:"+2 for 2nd estate (nobles shape the law)", condition:(c)=>c.estate===2, value:2},
+      {label:"+1 if literate", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=Math.ceil(c.money*0.25);
+        c.money=Math.max(0,c.money-loss);
+        if(c.children>0 && c.estate===3 && Math.random()>0.5){
+          c.children--;
+          return `A child is conscripted into the king's service. Children: ${c.children}`;
+        }
+        return `The decree falls harshly on you. Lose ¼ gold (${loss}). Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss=5; c.money=Math.max(0,c.money-loss);
+        return `New taxes cost you ${loss} gold. Remaining: ${c.money}`;
+      },
+      success: () => "You navigate the decree without significant harm. Life adjusts."
+    }
+  },
+
+  {
+    id:"witchcraft",
+    name:"🧙 ACCUSATION OF WITCHCRAFT",
+    desc:"Hysteria has gripped the village. A neighbor has accused someone of consorting with the devil. Suspicion spreads like fire and no one — especially women and the poor — is above accusation.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+2 for 1st estate (beyond suspicion)", condition:(c)=>c.estate===1, value:2},
+      {label:"+1 if literate (argue theology)", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:1},
+      {label:"-1 if female (more likely accused)", condition:(c)=>c.gender==="female", value:-1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        if(c.estate!==3){
+          c.estate=3; c.estateModifier=0;
+          return "You or a family member is accused. Your social standing is destroyed — cast into the 3rd estate.";
+        }
+        return "You are accused of witchcraft. YOUR CHARACTER DIES at the stake.";
+      },
+      setback: (c) => {
+        let loss=10; c.money=Math.max(0,c.money-loss);
+        return `You pay ${loss} gold for a certificate of good Christian standing from the priest. Remaining: ${c.money}`;
+      },
+      success: () => "Suspicion passes you by. You light a candle in thanks at the chapel."
+    }
+  },
+
+  {
+    id:"cathedral_levy",
+    name:"🛕 CHURCH CONSTRUCTION LEVY",
+    desc:"The bishop has ordered a new cathedral built. Every soul in the diocese must contribute labor or coin. It is a holy obligation — and a crushing burden.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+1 for 2nd estate (can pay a substitute)", condition:(c)=>c.estate===2, value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        if(c.estate===1){
+          let loss=15; c.money=Math.max(0,c.money-loss);
+          return `The project runs over budget and you are blamed. Lose ${loss} gold. Remaining: ${c.money}`;
+        }
+        c.penalties.push({value:-1, turnsLeft:3});
+        return "You are assigned forced labor for months. -1 to next 3 rolls.";
+      },
+      setback: (c) => {
+        let loss = c.estate===1 ? 8 : 8;
+        c.money=Math.max(0,c.money-loss);
+        return `You pay ${loss} gold as your contribution to the holy work. Remaining: ${c.money}`;
+      },
+      success: (c) => {
+        if(c.estate===1){
+          c.penalties.push({value:1, turnsLeft:2});
+          return "Construction proceeds well and your reputation grows. +1 to next 2 rolls.";
+        }
+        return "You contribute minimally and life continues undisturbed.";
+      }
+    }
+  },
+
+  {
+    id:"livestock_plague",
+    name:"🐄 LIVESTOCK PLAGUE",
+    desc:"A mysterious illness is sweeping through the animals of the region. Cattle, sheep, and pigs are dying in their pens. Without animals, farming collapses.",
+    affects: [2,3],
+    exemptEstate:[1],
+    exemptMsg:"The monastery's stores insulate you from the worst of the livestock loss.",
+    modifiers: [
+      {label:"+1 if Physician (knowledge of ailments)", condition:(c)=>c.job==="Physician", value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=6; c.money=Math.max(0,c.money-loss);
+        return `Your livestock die. Lose ${loss} gold from collapsed income. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss=3; c.money=Math.max(0,c.money-loss);
+        c.penalties.push({value:-1, turnsLeft:1});
+        return `You lose ${loss} gold and food is scarce. -1 to next roll. Remaining: ${c.money}`;
+      },
+      success: () => "Your animals are spared or you find healthy stock in time."
+    }
+  },
+
+  {
+    id:"crusaders_return",
+    name:"⚓ RETURN OF THE CRUSADERS",
+    desc:"Soldiers are returning from the Holy Land — broken, diseased, and desperate. They bring foreign illness, strange ideas, and a hunger for land and plunder.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+2 for 2nd estate (can house veterans)", condition:(c)=>c.estate===2, value:2},
+      {label:"+1 if armed", condition:(c)=>c.weapon && c.weapon!=="None", value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=Math.ceil(c.money*0.25);
+        c.money=Math.max(0,c.money-loss);
+        if(c.weapon && c.weapon!=="None"){let w=c.weapon; c.weapon="None"; return `Soldiers raid your property. Lose ¼ gold (${loss}) and your ${w}. Remaining: ${c.money}`;}
+        return `Returning soldiers pillage your stores. Lose ¼ gold (${loss}). Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss=5; c.money=Math.max(0,c.money-loss);
+        c.penalties.push({value:-1, turnsLeft:1});
+        return `The disruption costs ${loss} gold and rattles your household. -1 to next roll. Remaining: ${c.money}`;
+      },
+      success: () => "The soldiers pass through without incident. You bolt your door and wait."
+    }
+  },
+
+  {
+    id:"heresy_trial",
+    name:"📖 HERESY TRIAL",
+    desc:"A traveling preacher has been spreading ideas that contradict Church doctrine. The Inquisition has arrived and is questioning everyone about their beliefs and associations.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+2 for 1st estate (you are the inquisitors)", condition:(c)=>c.estate===1, value:2},
+      {label:"+1 if literate (cite scripture in defense)", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:1},
+      {label:"-1 for 3rd estate (easy scapegoats)", condition:(c)=>c.estate===3, value:-1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        if(c.estate===3) return "You are implicated in heresy. YOUR CHARACTER DIES — burned at the stake.";
+        c.penalties.push({value:-2, turnsLeft:3});
+        return "You are implicated in heresy and lose all estate influence for 3 turns. -2 to all rolls.";
+      },
+      setback: (c) => {
+        let loss=10; c.money=Math.max(0,c.money-loss);
+        return `You publicly recant and pay ${loss} gold in penance. Remaining: ${c.money}`;
+      },
+      success: () => "You demonstrate your orthodoxy convincingly. The inquisitors move on."
+    }
+  },
+
+  {
+    id:"plague_doctor",
+    name:"🏥 PLAGUE DOCTOR ARRIVES",
+    desc:"A physician has come to town claiming to cure the sick — for a fee. Bloodletting, foul herbs, strange powders. Desperate times call for desperate measures.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+1 if literate (skeptical of quackery)", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        if(c.job==="Physician") return "You recognize the charlatan and send them away. No effect.";
+        let loss=5; c.money=Math.max(0,c.money-loss);
+        c.penalties.push({value:-1, turnsLeft:2});
+        return `The treatment makes things worse. Lose ${loss} gold and -1 to next 2 rolls. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        if(c.job==="Physician") return "You recognize the charlatan and send them away. No effect.";
+        let loss=8; c.money=Math.max(0,c.money-loss);
+        return `You pay ${loss} gold for treatment that does little. Remaining: ${c.money}`;
+      },
+      success: () => c.job==="Physician" ? "You expose the charlatan publicly and earn goodwill from the village." : "You wisely avoid the doctor or the treatment works. No ill effects."
+    }
+  },
+
+  {
+    id:"enclosure",
+    name:"🌾 ENCLOSURE OF COMMON LANDS",
+    desc:"A local lord has fenced off the common fields that peasants relied on for grazing and foraging. This is legal — but devastating for the poor.",
+    affects: [2,3],
+    exemptEstate:[1],
+    exemptMsg:"The Church's lands are untouched by the enclosure. You watch from the hillside.",
+    modifiers: [],
+    outcomes: {
+      failure: (c) => {
+        if(c.estate===2){
+          c.penalties.push({value:-1, turnsLeft:2});
+          let loss=10; c.money=Math.max(0,c.money-loss);
+          return `The peasants revolt against your enclosure. Lose ${loss} gold and -1 to next 2 rolls. Remaining: ${c.money}`;
+        }
+        let loss=3; c.money=Math.max(0,c.money-loss);
+        return `You lose access to the commons. Income reduced — lose ${loss} gold. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        if(c.estate===2){
+          let loss=5; c.money=Math.max(0,c.money-loss);
+          return `The enclosure process is expensive. Lose ${loss} gold in legal fees. Remaining: ${c.money}`;
+        }
+        let loss=4; c.money=Math.max(0,c.money-loss);
+        return `You spend ${loss} gold finding alternative grazing land. Remaining: ${c.money}`;
+      },
+      success: (c) => {
+        if(c.estate===2){
+          let gain=5; c.money+=gain;
+          return `Your estate income grows from the new land. Gain ${gain} gold. Total: ${c.money}`;
+        }
+        return "You find new land or negotiate access to the commons. Life goes on.";
+      }
+    }
+  },
+
+  {
+    id:"feast_day",
+    name:"🎭 FEAST DAY OF THE PATRON SAINT",
+    desc:"The village erupts in celebration for the patron saint's feast day. Food, drink, and revelry fill the streets — but so do gambling, brawling, and temptation.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+1 for 1st estate (organizers of the feast)", condition:(c)=>c.estate===1, value:1},
+      {label:"-1 if armed (weapons make brawls deadly)", condition:(c)=>c.weapon && c.weapon!=="None", value:-1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=Math.ceil(c.money*0.25);
+        c.money=Math.max(0,c.money-loss);
+        c.penalties.push({value:-1, turnsLeft:2});
+        return `You gamble and brawl ruinously. Lose ¼ gold (${loss}) and -1 to next 2 rolls. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss=5; c.money=Math.max(0,c.money-loss);
+        return `You spend freely and enjoy yourself, but lose ${loss} gold. Remaining: ${c.money}`;
+      },
+      success: (c) => {
+        let gain=3; c.money+=gain;
+        return `You enjoy the feast and win a small contest. Gain ${gain} gold. Total: ${c.money}`;
+      }
+    }
+  },
+
+  {
+    id:"debt_collection",
+    name:"📜 DEBT COLLECTION",
+    desc:"A creditor — a moneylender, a lord, or the Church itself — has come to collect an old debt, real or fabricated. In an age before reliable records, anyone can claim you owe them.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+2 if literate (written records as defense)", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:2},
+      {label:"+1 for 2nd estate (social standing helps)", condition:(c)=>c.estate===2, value:1},
+      {label:"-1 for 3rd estate (no legal recourse)", condition:(c)=>c.estate===3, value:-1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=Math.ceil(c.money*0.33);
+        c.money=Math.max(0,c.money-loss);
+        if(c.children>0 && c.estate===3 && Math.random()>0.5){
+          c.children--;
+          return `You cannot pay. A child is taken as an indentured servant. Children: ${c.children}`;
+        }
+        return `The debt is enforced. Lose ⅓ gold (${loss}). Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss=10; c.money=Math.max(0,c.money-loss);
+        return `You pay ${loss} gold to settle the claim. Remaining: ${c.money}`;
+      },
+      success: () => "You produce evidence or a witness that refutes the claim. The creditor leaves empty-handed."
+    }
+  },
+
+  {
+    id:"eclipse",
+    name:"🌙 ECLIPSE OR COMET",
+    desc:"A solar eclipse or bright comet blazes across the sky. The people are terrified — scholars say it portends disaster, priests call it God's warning, and charlatans exploit the panic.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+2 if literate (understand astronomy)", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:2},
+      {label:"+1 for 1st estate (profit from the fear)", condition:(c)=>c.estate===1, value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=Math.ceil(c.money*0.25);
+        c.money=Math.max(0,c.money-loss);
+        if(c.children>0 && Math.random()>0.6){c.children--;return `Panic tears through your household. A family member perishes from the stress and fear. Children: ${c.children}`;}
+        return `You flee or spend wildly on "protection." Lose ¼ gold (${loss}). Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let loss=5; c.money=Math.max(0,c.money-loss);
+        return `You donate ${loss} gold to the church for prayers of protection. Remaining: ${c.money}`;
+      },
+      success: () => "You remain calm while others panic. The sky clears and life continues undisturbed."
+    }
+  },
+
+  // ── 5 POSITIVE EVENTS ──────────────────────────────────────
+
+  {
+    id:"bountiful_harvest",
+    name:"🌟 BOUNTIFUL HARVEST",
+    desc:"The rains came at the right time, the sun was generous, and the harvest this year is the finest in living memory. Granaries overflow and the mood across the land is jubilant.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+1 for 2nd estate (larger landholding)", condition:(c)=>c.estate===2, value:1},
+      {label:"+1 if Skilled Laborer (better tools)", condition:(c)=>c.job==="Skilled Laborer", value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=2; c.money=Math.max(0,c.money-loss);
+        return `Despite the good year, your stores are stolen or mismanaged. Lose ${loss} gold. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let gain=3; c.money+=gain;
+        return `A modest but welcome harvest. You gain ${gain} gold. Total: ${c.money}`;
+      },
+      success: (c) => {
+        let gain = c.estate===3 ? 8 : c.estate===2 ? 15 : 5;
+        c.money+=gain;
+        return `The finest harvest in years fills your stores. You gain ${gain} gold. Total: ${c.money}`;
+      }
+    }
+  },
+
+  {
+    id:"noble_patronage",
+    name:"🤝 NOBLE PATRONAGE",
+    desc:"A wealthy noble or church official has taken notice of your reputation and is offering patronage — financial support, legal protection, and a seat at a more powerful table.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+2 if literate (educated individuals are prized)", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:2},
+      {label:"+1 for 1st estate (clergy connections)", condition:(c)=>c.estate===1, value:1},
+      {label:"-1 for 3rd estate (patrons rarely seek commoners)", condition:(c)=>c.estate===3, value:-1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=3; c.money=Math.max(0,c.money-loss);
+        return `You offend the patron or are passed over. Gifts went unappreciated — lose ${loss} gold. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let gain=5; c.money+=gain;
+        c.penalties.push({value:-1, turnsLeft:1});
+        return `Patronage comes with strings attached. Gain ${gain} gold but -1 to next roll fulfilling obligations. Total: ${c.money}`;
+      },
+      success: (c) => {
+        let gain=10; c.money+=gain;
+        c.penalties.push({value:1, turnsLeft:3});
+        return `The patron's protection opens doors. Gain ${gain} gold and +1 to next 3 rolls. Total: ${c.money}`;
+      }
+    }
+  },
+
+  {
+    id:"inheritance_windfall",
+    name:"💰 INHERITANCE WINDFALL",
+    desc:"A distant relative — a merchant, a minor lord, or a childless cleric — has died and left you something unexpected. In a world where most people die with nothing, this is rare fortune.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+1 for 2nd estate (family networks documented)", condition:(c)=>c.estate===2, value:1},
+      {label:"+1 if literate (read and contest the will)", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:1}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=3; c.money=Math.max(0,c.money-loss);
+        return `The inheritance is declared invalid and seized by a lord. Lose ${loss} gold in legal costs. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let gain = c.estate===3 ? 7 : 12;
+        c.money+=gain;
+        return `The inheritance is contested but you receive half after fees. Gain ${gain} gold. Total: ${c.money}`;
+      },
+      success: (c) => {
+        let gain = c.estate===3 ? 15 : c.estate===2 ? 25 : 10;
+        c.money+=gain;
+        return `The inheritance comes through in full. You gain ${gain} gold. Total: ${c.money}`;
+      }
+    }
+  },
+
+  {
+    id:"tournament",
+    name:"🛡 TOURNAMENT OR FAIR",
+    desc:"A grand tournament and regional fair has come to your area. Knights joust for glory, merchants hawk their wares, and entertainers fill the streets. Fortune awaits the bold.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+2 if armed 2nd estate (jousting advantage)", condition:(c)=>c.estate===2 && c.weapon && c.weapon!=="None", value:2}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=5; c.money=Math.max(0,c.money-loss);
+        if(c.estate===2){
+          c.penalties.push({value:-1, turnsLeft:1});
+          return `You are unhorsed and publicly humiliated. Lose ${loss} gold and -1 to next roll. Remaining: ${c.money}`;
+        }
+        return `You are robbed in the chaos of the fair. Lose ${loss} gold. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        let gain = c.estate===2 ? 0 : 3;
+        let loss = c.estate===2 ? 5 : 0;
+        if(c.estate===2){c.money=Math.max(0,c.money-loss); return `You participate but win nothing, spending ${loss} gold on entry and equipment. Remaining: ${c.money}`;}
+        c.money+=gain;
+        return `A modest profit from the crowds. Gain ${gain} gold. Total: ${c.money}`;
+      },
+      success: (c) => {
+        let gain = c.estate===1 ? 10 : c.estate===2 ? 20 : 8;
+        c.money+=gain;
+        if(c.estate===2) c.penalties.push({value:1, turnsLeft:2});
+        return `${c.estate===2 ? "You win honor and acclaim at the tournament. +1 to next 2 rolls. " : ""}You gain ${gain} gold. Total: ${c.money}`;
+      }
+    }
+  },
+
+  {
+    id:"scholarly_recognition",
+    name:"📚 SCHOLARLY RECOGNITION",
+    desc:"A traveling scholar, a monk with a scriptorium, or a cathedral schoolmaster has recognized something worth cultivating in you or your household. In an age when knowledge is power, this is a rare gift.",
+    affects: [1,2,3],
+    modifiers: [
+      {label:"+2 if literate (recognized as intellectual peer)", condition:(c)=>c.literacy && c.literacy!=="Not Literate", value:2},
+      {label:"+1 for 1st estate (scholars move in Church circles)", condition:(c)=>c.estate===1, value:1},
+      {label:"-2 for 3rd estate (scholars rarely seek peasants)", condition:(c)=>c.estate===3, value:-2}
+    ],
+    outcomes: {
+      failure: (c) => {
+        let loss=5; c.money=Math.max(0,c.money-loss);
+        return `The arrangement falls through after you spent ${loss} gold on preparation. Remaining: ${c.money}`;
+      },
+      setback: (c) => {
+        c.penalties.push({value:1, turnsLeft:2});
+        return "A partial opportunity — you gain limited education. +1 to next 2 rolls.";
+      },
+      success: (c) => {
+        let gain=5; c.money+=gain;
+        c.penalties.push({value:1, turnsLeft:4});
+        return `You or a family member receives education and a letter of recommendation. Gain ${gain} gold and +1 to next 4 rolls. Total: ${c.money}`;
+      }
+    }
+  }
+];
+
+// ══════════════════════════════════════════════════════════════
+//  GAME STATE
+// ══════════════════════════════════════════════════════════════
+
+let character = null;
+let rollsCompleted = {};
+let currentEvent = null;
+let eventRolled = false;
+let consecutiveFailures = 0;
+let turnPenalty = 0;   // rolling penalty from injuries
+let penaltyTurns = 0;  // how many turns the penalty lasts
+let brokeTimer = 0;    // turns until death from poverty
+let usedEventIds = [];
+
+// ══════════════════════════════════════════════════════════════
+//  UTILITY
+// ══════════════════════════════════════════════════════════════
+
+function roll(sides) { return Math.floor(Math.random()*sides)+1; }
+function d(sides) { return roll(sides); }
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function addLog(text, type='info') {
+  const log = document.getElementById('event-log');
+  const entry = document.createElement('div');
+  entry.className = `log-entry log-${type}`;
+  entry.innerHTML = text;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CHARACTER CREATION
+// ══════════════════════════════════════════════════════════════
+
+function resetRolls() {
+  rollsCompleted = {};
+  const gender = document.getElementById('char-gender').value;
+  const prompt = document.getElementById('gender-prompt');
+  const rollSection = document.getElementById('roll-section');
+  if(!gender) {
+    prompt.style.display='block';
+    rollSection.style.display='none';
+    return;
+  }
+  prompt.style.display='none';
+  rollSection.style.display='block';
+  // reset all result displays
+  ['occ','children','spouse','lit','wpn','inc'].forEach(k=>{
+    const el = document.getElementById(k+'-result');
+    if(el) el.textContent='';
+  });
+  // hide all subsequent rows
+  ['children','spouse','literacy','weapon','income'].forEach(k=>{
+    const el = document.getElementById('row-'+k);
+    if(el) el.style.display='none';
+  });
+  // re-enable ALL buttons
+  ['btn-roll-occ','btn-roll-children','btn-roll-spouse','btn-roll-lit','btn-roll-wpn','btn-roll-inc'].forEach(id=>{
+    const btn = document.getElementById(id);
+    if(btn) btn.disabled=false;
+  });
+  document.getElementById('create-btn-wrap').style.display='none';
+}
+
+function rollOccupation() {
+  const gender = document.getElementById('char-gender').value;
+  if(!gender) return;
+  const r = d(20);
+  const table = gender==='male' ? OCCUPATIONS_MALE : OCCUPATIONS_FEMALE;
+  const occ = table[r];
+  rollsCompleted.occupation = {...occ, roll:r};
+
+  const estateNames = {1:'1st Estate (Church)', 2:'2nd Estate (Nobility)', 3:'3rd Estate (Commons)'};
+  document.getElementById('occ-result').innerHTML =
+    `<span style="color:var(--gold2)">${occ.job}</span> <span class="estate-badge estate-${occ.estate}">${estateNames[occ.estate]}</span>`;
+  document.getElementById('btn-roll-occ').disabled=true;
+  document.getElementById('row-children').style.display='block';
+}
+
+function rollChildren() {
+  const r = d(6);
+  let count;
+  switch(r) {
+    case 1: count=0; break;
+    case 2: case 3: count=Math.floor(Math.random()*2)+1; break; // 1-2
+    case 4: count=Math.floor(Math.random()*2)+3; break; // 3-4
+    case 5: count=Math.floor(Math.random()*2)+5; break; // 5-6
+    case 6: count=7+Math.floor(Math.random()*3); break; // 7+
+  }
+  rollsCompleted.children = {count, roll:r};
+  document.getElementById('children-result').innerHTML = `<span style="color:var(--gold2)">${count} child${count!==1?'ren':''}</span>`;
+  document.getElementById('btn-roll-children').disabled=true;
+  document.getElementById('row-spouse').style.display='block';
+}
+
+function rollSpouse() {
+  const r = d(4);
+  const alive = r <= 3;
+  rollsCompleted.spouse = {alive, roll:r};
+  document.getElementById('spouse-result').innerHTML =
+    `Spouse is <span style="color:${alive?'var(--green2)':'var(--red2)'}">${alive?'Living':'Deceased'}</span>`;
+  document.getElementById('btn-roll-spouse').disabled=true;
+
+  const occ = rollsCompleted.occupation;
+  const gender = document.getElementById('char-gender').value;
+
+  // Literacy: 2nd estate, or clerk/all clergy auto
+  const isClergy = occ.estate===1;
+  const isClerk = occ.job==='Clerk';
+  if(occ.estate===2 || isClergy || isClerk) {
+    document.getElementById('row-literacy').style.display='block';
+  } else {
+    rollsCompleted.literacy = {level:"Not Literate", roll:0};
+    checkWeaponOrIncome();
+  }
+}
+
+function rollLiteracy() {
+  const occ = rollsCompleted.occupation;
+  const gender = document.getElementById('char-gender').value;
+  const isClergy = occ.estate===1;
+  const isClerk = occ.job==='Clerk';
+
+  let level, r;
+  if(isClergy || isClerk) {
+    level = "Very Literate"; r="auto";
+  } else {
+    r = d(6);
+    let idx = r;
+    if(gender==='female') idx = Math.max(1, r-1);
+    level = LITERACY_TABLE[Math.min(6,Math.max(1,idx))];
+  }
+  rollsCompleted.literacy = {level, roll:r};
+  document.getElementById('lit-result').innerHTML =
+    `<span style="color:var(--gold2)">${level}</span>`;
+  document.getElementById('btn-roll-lit').disabled=true;
+  checkWeaponOrIncome();
+}
+
+function checkWeaponOrIncome() {
+  const occ = rollsCompleted.occupation;
+  const gender = document.getElementById('char-gender').value;
+  if(occ.estate===2) {
+    document.getElementById('row-weapon').style.display='block';
+  } else {
+    rollsCompleted.weapon = {weapon: gender==='female'?'Knife':'None', roll:0};
+    showIncomeRow();
+  }
+}
+
+function rollWeapon() {
+  const gender = document.getElementById('char-gender').value;
+  const occ = rollsCompleted.occupation;
+  let r = d(6);
+  let idx = r;
+  if(occ.job==='Squire') idx = Math.max(1, r-1);
+  const wpn = WEAPONS_TABLE[Math.min(6,Math.max(1,idx))];
+  const finalWpn = gender==='female' ? 'Knife' : wpn;
+  rollsCompleted.weapon = {weapon:finalWpn, roll:r};
+  document.getElementById('wpn-result').innerHTML =
+    `<span style="color:var(--gold2)">${WEAPON_EMOJI[finalWpn]||''} ${finalWpn}</span>`;
+  document.getElementById('btn-roll-wpn').disabled=true;
+  showIncomeRow();
+}
+
+function showIncomeRow() {
+  const occ = rollsCompleted.occupation;
+  document.getElementById('income-label').textContent = 'STARTING WEALTH';
+  document.getElementById('row-income').style.display='block';
+}
+
+function rollIncome() {
+  const occ = rollsCompleted.occupation;
+  const gender = document.getElementById('char-gender').value;
+  const children = rollsCompleted.children.count;
+  let income, r;
+
+  if(occ.estate===3) {
+    r = d(10);
+    income = r + children * 2;
+  } else {
+    r = d(100);
+    income = r * 2;
+    if(gender==='female') income -= 5;
+    income = Math.max(1,income);
+  }
+  rollsCompleted.income = {income, roll:r};
+  document.getElementById('inc-result').innerHTML = `<span style="color:var(--gold2)">${income} gold</span>`;
+  document.getElementById('btn-roll-inc').disabled=true;
+  document.getElementById('create-btn-wrap').style.display='block';
+}
+
+function createCharacter() {
+  const name = document.getElementById('char-name').value.trim() || "Unknown Peasant";
+  const gender = document.getElementById('char-gender').value;
+  const occ = rollsCompleted.occupation;
+  const children = rollsCompleted.children;
+  const spouse = rollsCompleted.spouse;
+  const literacy = rollsCompleted.literacy;
+  const weapon = rollsCompleted.weapon;
+  const income = rollsCompleted.income;
+
+  // determine portrait
+  let portrait = gender==='male' ? '🧑' : '👩';
+  const jp = occ.job;
+  if(jp.includes('Serf')) portrait = gender==='male'?'🧑‍🌾':'👩‍🌾';
+  else if(jp.includes('Knight')) portrait='🛡️';
+  else if(jp.includes('Noble') || jp.includes('Daughter')) portrait='👑';
+  else if(jp.includes('Monk') || jp.includes('Friar') || jp.includes('Priest')) portrait='⛪';
+  else if(jp.includes('Physician')) portrait='🩺';
+  else if(jp.includes('Clerk')) portrait='📜';
+  else if(jp.includes('Squire')) portrait='⚔️';
+  else if(jp.includes('Skilled')) portrait='⚒️';
+
+  character = {
+    name, gender,
+    job: occ.job,
+    estate: occ.estate,
+    children: children.count,
+    spouseAlive: spouse.alive,
+    literacy: literacy.level,
+    weapon: weapon.weapon || 'None',
+    money: income.income,
+    portrait,
+    estateModifier: ESTATE_MODIFIERS[occ.estate],
+    failures: 0,
+    turn: 0,
+    brokeTimer: 0,
+    penalties: [] // {value, turnsLeft}
+  };
+
+  consecutiveFailures = 0;
+  usedEventIds = [];
+  document.getElementById('event-log').innerHTML = '';
+
+  showScreen('screen-game');
+  renderCharacter();
+  addLog(`⚔ ${name} begins their life in Medieval Europe as a ${occ.job}.`, 'system');
+  addLog(`💰 Starting wealth: ${income.income} gold | 👨‍👩‍👧 Children: ${children.count} | Spouse: ${spouse.alive?'Living':'Deceased'}`, 'info');
+  loadNextEvent();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════════════
+
+function renderCharacter() {
+  if(!character) return;
+  const c = character;
+  const estateNames = {1:'1st Estate • Church',2:'2nd Estate • Nobility',3:'3rd Estate • Commons'};
+
+  document.getElementById('portrait-box').textContent = c.portrait;
+  document.getElementById('char-display-name').textContent = c.name;
+  document.getElementById('char-display-role').innerHTML =
+    `<span class="estate-badge estate-${c.estate}">${estateNames[c.estate]}</span>`;
+  document.getElementById('char-display-details').innerHTML =
+    `${c.job} &nbsp;|&nbsp; ${c.gender==='male'?'Male':'Female'} &nbsp;|&nbsp; Spouse: ${c.spouseAlive?'<span style="color:var(--green2)">Living</span>':'<span style="color:var(--red2)">Deceased</span>'}`;
+
+  document.getElementById('stat-money').textContent = c.money + ' gold';
+  document.getElementById('stat-money').style.color = c.money<=5 ? 'var(--red2)' : 'var(--text)';
+  document.getElementById('stat-children').textContent = c.children;
+  document.getElementById('stat-weapon').textContent = (WEAPON_EMOJI[c.weapon]||'') + ' ' + (c.weapon||'None');
+  document.getElementById('stat-literacy').textContent = c.literacy || '—';
+
+  // fortune display — descriptive, not numeric
+  let totalMod = c.estateModifier;
+  c.penalties && c.penalties.forEach(p=>{ totalMod += p.value; });
+  let fortuneLabel, fortuneColor;
+  if(totalMod >= 3)       { fortuneLabel = 'Blessed';    fortuneColor = 'var(--green2)'; }
+  else if(totalMod === 2) { fortuneLabel = 'Favored';    fortuneColor = 'var(--green2)'; }
+  else if(totalMod === 1) { fortuneLabel = 'Steady';     fortuneColor = 'var(--gold2)'; }
+  else if(totalMod === 0) { fortuneLabel = 'Uncertain';  fortuneColor = 'var(--text2)'; }
+  else if(totalMod === -1){ fortuneLabel = 'Troubled';   fortuneColor = 'var(--red2)'; }
+  else                    { fortuneLabel = 'Cursed';     fortuneColor = 'var(--red2)'; }
+  document.getElementById('stat-modifier').textContent = fortuneLabel;
+  document.getElementById('stat-modifier').style.color = fortuneColor;
+
+  // failure notches
+  for(let i=0;i<3;i++) {
+    const n = document.getElementById('notch'+i);
+    if(n) n.className = 'notch' + (i<c.failures?' filled':'');
+  }
+
+  // age display: turn 1 = age 18 (character creation), turn 2+ = age 25, 26, 27...
+  const age = c.turn === 1 ? 18 : 25 + (c.turn - 2);
+  document.getElementById('year-display').textContent = `AGE ${age}`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  EVENTS
+// ══════════════════════════════════════════════════════════════
+
+function getValidEvents() {
+  return ALL_EVENTS.filter(e => {
+    if(!e.affects.includes(character.estate)) return false;
+    if(e.exemptEstate && e.exemptEstate.includes(character.estate)) return false;
+    // special: childbirth only if married + female or married male
+    if(e.id==='childbirth') {
+      if(character.gender==='male' && !character.spouseAlive) return false;
+    }
+    return true;
+  });
+}
+
+function loadNextEvent() {
+  character.turn++;
+  const age = character.turn === 1 ? 18 : 25 + (character.turn - 2);
+  document.getElementById('year-display').textContent = `AGE ${age}`;
+
+  // check broke timer
+  if(character.money <= 0) {
+    character.brokeTimer = (character.brokeTimer||0) + 1;
+    if(character.brokeTimer >= 2) {
+      triggerDeath("You have been destitute for too long. Without money or support, you starve and perish.");
+      return;
+    }
+    addLog(`⚠ You are destitute. Without gold or support from another, you will not survive another year.`, 'failure');
+  } else {
+    character.brokeTimer = 0;
+  }
+
+  // tick down penalties
+  character.penalties = character.penalties.filter(p=>{
+    p.turnsLeft--;
+    return p.turnsLeft > 0;
+  });
+
+  // pick event
+  let valid = getValidEvents();
+  // avoid repeats if possible
+  let fresh = valid.filter(e=>!usedEventIds.includes(e.id));
+  if(fresh.length===0) { usedEventIds=[]; fresh=valid; }
+  const evt = fresh[Math.floor(Math.random()*fresh.length)];
+  usedEventIds.push(evt.id);
+  currentEvent = evt;
+  eventRolled = false;
+
+  // check if exempted
+  let isExempt = (evt.exemptEstate && evt.exemptEstate.includes(character.estate));
+
+  document.getElementById('event-name').textContent = evt.name;
+  document.getElementById('event-desc').innerHTML = evt.desc;
+
+  if(isExempt) {
+    document.getElementById('event-desc').innerHTML += `<br><br><span style="color:var(--green2)">✔ ${evt.exemptMsg}</span>`;
+    document.getElementById('btn-roll-event').style.display='none';
+    document.getElementById('btn-next-event').style.display='inline-block';
+    document.getElementById('roll-result').style.display='none';
+    addLog(`<div class="log-event">${evt.name}</div>`, 'event');
+    addLog(`✔ Exempt: ${evt.exemptMsg}`, 'success');
+  } else {
+    // show modifiers
+    renderModifiers(evt);
+    document.getElementById('btn-roll-event').style.display='inline-block';
+    document.getElementById('btn-next-event').style.display='none';
+    document.getElementById('roll-result').style.display='none';
+    addLog(`<div class="log-event">${evt.name}</div>`, 'event');
+  }
+
+  renderCharacter();
+}
+
+function renderModifiers(evt) {
+  // modifiers are internal — not displayed to players
+}
+
+function calcModifier(evt) {
+  const c = character;
+  let mod = c.estateModifier;
+  evt.modifiers && evt.modifiers.forEach(m => {
+    if(m.condition(c)) mod += m.value;
+  });
+  c.penalties && c.penalties.forEach(p => { mod += p.value; });
+  return mod;
+}
+
+function rollForEvent() {
+  if(eventRolled) return;
+  const c = character;
+  const evt = currentEvent;
+  const isExempt = (evt.exemptEstate && evt.exemptEstate.includes(c.estate));
+  if(isExempt) return;
+
+  const d1 = d(6), d2 = d(6);
+  const mod = calcModifier(evt);
+  const total = d1 + d2 + mod;
+
+  let outcome, outLabel, outColor, consequence;
+
+  if(total <= 6) {
+    outcome='failure'; outLabel='⚠ A YEAR OF HARDSHIP'; outColor='var(--red2)';
+    consequence = evt.outcomes.failure(c);
+    consecutiveFailures++;
+    c.failures = Math.min(3, c.failures+1);
+  } else if(total <= 10) {
+    outcome='setback'; outLabel='~ A DIFFICULT YEAR'; outColor='#88ccff';
+    consequence = evt.outcomes.setback(c);
+    consecutiveFailures = 0;
+    if(consequence.includes('-1 to next') || consequence.includes('-1 to your next')) {
+      c.penalties.push({value:-1, turnsLeft:2});
+    }
+    if(consequence.includes('-2 to your next')) {
+      c.penalties.push({value:-2, turnsLeft:3});
+    }
+    if(consequence.includes('ALL future rolls')) {
+      c.penalties.push({value:-1, turnsLeft:99});
+    }
+  } else {
+    outcome='success'; outLabel='✔ A FORTUNATE YEAR'; outColor='var(--green2)';
+    consequence = evt.outcomes.success(c);
+    consecutiveFailures = 0;
+  }
+
+  const rollRes = document.getElementById('roll-result');
+  rollRes.style.display='block';
+  const lbl = document.getElementById('roll-outcome-label');
+  lbl.textContent = outLabel;
+  lbl.style.color = outColor;
+  document.getElementById('roll-consequence').textContent = consequence;
+
+  const logLabel = outcome==='success' ? '✔ Fortune smiles upon you' : outcome==='setback' ? '~ A difficult year passes' : '⚠ A year of grave hardship';
+  addLog(logLabel, outcome);
+  addLog(consequence, outcome==='success'?'success':outcome==='setback'?'setback':'failure');
+
+  eventRolled=true;
+  document.getElementById('btn-roll-event').disabled=true;
+  document.getElementById('btn-next-event').style.display='inline-block';
+
+  renderCharacter();
+
+  const permanentDeath = consequence.includes('YOUR CHARACTER DIES');
+
+  if(permanentDeath) {
+    setTimeout(()=>triggerDeath(consequence), 1200);
+    return;
+  }
+
+  if(c.failures >= 3) {
+    setTimeout(()=>triggerDeath("The accumulated hardships of medieval life have proven too great to bear. Your body and spirit have given out."), 1200);
+    return;
+  }
+
+  if(consecutiveFailures >= 3) {
+    setTimeout(()=>triggerDeath("Three consecutive years of grave misfortune have broken you completely. The cruelties of fate prove insurmountable."), 1200);
+    return;
+  }
+}
+
+function nextEvent() {
+  document.getElementById('btn-roll-event').disabled=false;
+  loadNextEvent();
+}
+
+function triggerDeath(reason) {
+  const c = character;
+  const overlay = document.getElementById('dead-overlay');
+  document.getElementById('dead-overlay-msg').textContent = reason;
+  overlay.classList.add('show');
+
+  const ageAtDeath = c.turn === 1 ? 18 : 25 + (c.turn - 2);
+
+  // obituary summary
+  document.getElementById('death-message').textContent = reason;
+  document.getElementById('obituary').innerHTML =
+    `<b style="font-size:22px;color:var(--gold2)">${c.name}</b><br>
+    <span style="color:var(--text2)">${c.job} of the ${['','Church','Nobility','Commons'][c.estate]}</span><br><br>
+    <span style="color:var(--dim)">Departed this world at the age of ${ageAtDeath}.</span><br>
+    <span style="color:var(--dim)">Left behind: ${c.children} child${c.children!==1?'ren':''} &nbsp;|&nbsp; ${c.money} gold remaining</span><br>
+    <span style="color:var(--dim)">Education: ${c.literacy} &nbsp;|&nbsp; Weapon: ${c.weapon}</span><br><br>
+    <i style="color:var(--stone2)">May their soul find the mercy that the living world denied them.</i>`;
+
+  addLog(`💀 ${c.name} has died at age ${ageAtDeath}. ${reason}`, 'death');
+
+  // copy the full chronicle (including the death entry just added) into the game over screen
+  const liveLog = document.getElementById('event-log');
+  const gameoverChronicle = document.getElementById('gameover-chronicle');
+  gameoverChronicle.innerHTML = liveLog.innerHTML;
+}
+
+function resetGame() {
+  character = null;
+  rollsCompleted = {};
+  currentEvent = null;
+  eventRolled = false;
+  consecutiveFailures = 0;
+  usedEventIds = [];
+  document.getElementById('event-log').innerHTML='';
+  document.getElementById('dead-overlay').classList.remove('show');
+  document.getElementById('char-gender').value='';
+  document.getElementById('char-name').value='';
+  document.getElementById('occ-result').innerHTML='';
+  resetRolls();
+}
+
+// Init
+document.getElementById('char-gender').addEventListener('change', function() {
+  if(this.value) resetRolls();
+  else {
+    document.getElementById('gender-prompt').style.display='block';
+    document.getElementById('roll-section').style.display='none';
+  }
+});
+</script>
+</body>
+</html>
