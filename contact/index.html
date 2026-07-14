@@ -141,22 +141,21 @@
       </div>
     </div>
 
-    <form action="https://formsubmit.co/humanitiesimmersed@gmail.com" method="POST">
+    <form id="contact-form" action="https://formspree.io/f/mbdnlpvp" method="POST">
       <h2>Send a Message</h2>
-
-      <input type="hidden" name="_subject" value="New message from the HIL contact page">
-      <input type="hidden" name="_template" value="table">
-      <input type="hidden" name="_captcha" value="true">
-      <input type="text" name="_honey" style="display:none">
+      <div data-fs-success style="display:none; background:#fff2eb; color:#201e1d; padding:12px 16px; border-radius:12px; font-size:14px;"></div>
+      <div data-fs-error style="display:none; background:#fff2eb; color:#9f3f20; padding:12px 16px; border-radius:12px; font-size:14px;"></div>
 
       <label for="name">Name</label>
-      <input type="text" id="name" name="Name" required>
+      <input type="text" id="name" name="name" data-fs-field required>
+      <span data-fs-error="name" style="color:#fff2eb; font-size:12px;"></span>
 
       <label for="email">Email</label>
-      <input type="email" id="email" name="Email" required>
+      <input type="email" id="email" name="email" data-fs-field required>
+      <span data-fs-error="email" style="color:#fff2eb; font-size:12px;"></span>
 
       <label for="role">I am a...</label>
-      <select id="role" name="I am a">
+      <select id="role" name="role" data-fs-field>
         <option>Teacher</option>
         <option>Student</option>
         <option>Parent</option>
@@ -165,9 +164,10 @@
       </select>
 
       <label for="message">Message</label>
-      <textarea id="message" name="Message" required></textarea>
+      <textarea id="message" name="message" data-fs-field required></textarea>
+      <span data-fs-error="message" style="color:#fff2eb; font-size:12px;"></span>
 
-      <button type="submit">Send Message</button>
+      <button type="submit" data-fs-submit-btn>Send Message</button>
     </form>
   </div>
 
@@ -176,5 +176,10 @@
     <div><a href="../">Back to Home</a></div>
   </footer>
 </div>
+<script>
+  window.formspree = window.formspree || function () { (formspree.q = formspree.q || []).push(arguments); };
+  formspree('initForm', { formElement: '#contact-form', formId: 'mbdnlpvp' });
+</script>
+<script src="https://unpkg.com/@formspree/ajax@1" defer></script>
 </body>
 </html>
