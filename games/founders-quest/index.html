@@ -252,7 +252,7 @@ let particles = [];
 const player = {
   x:80, y:0, w:26, h:34, vx:0, vy:0, onGround:false,
   face:1, coyote:0, jumpBuf:0, canSuper:false, invuln:0,
-  safeX:80, safeY:400, anim:0
+  safeX:80, safeY:400, anim:0, squash:0
 };
 
 // ---------- INPUT ----------
@@ -443,6 +443,8 @@ function update(dt){
   }
 
   // integrate Y
+  const preLandVy = p.vy;
+  const wasGrounded = p.onGround;
   p.y+=p.vy;
   p.onGround=false;
   // ground
@@ -464,7 +466,12 @@ function update(dt){
       }
     }
   }
-  if(p.onGround){ p.coyote=COYOTE; if(!overGap(p.x+p.w/2)){ p.safeX=p.x; p.safeY=p.y; } }
+  if(p.onGround){
+    p.coyote=COYOTE; if(!overGap(p.x+p.w/2)){ p.safeX=p.x; p.safeY=p.y; }
+    // Mario/Kirby-style landing squash-and-stretch on hard landings
+    if(!wasGrounded && preLandVy>7) p.squash=9;
+  }
+  if(p.squash>0) p.squash--;
 
   // fell in pit
   if(p.y>H+80){ damage(true); }
@@ -620,13 +627,16 @@ function grantReward(type,b){
 // ---------- PIXEL DRAW HELPERS ----------
 function px(x,y,w,h,color){ ctx.fillStyle=color; ctx.fillRect(Math.round(x),Math.round(y),w,h); }
 
-function drawFounder(sx,sy,cd,face,walkFrame,flash){
+function drawFounder(sx,sy,cd,face,walkFrame,flash,squash){
   // 26x34 stylized 8-bit colonial figure, drawn larger (visual only — hitbox unchanged)
   const SPRITE_SCALE = 1.5;
+  // Mario/Kirby-style squash-and-stretch: briefly wide+flat on a hard landing, anchored at the feet
+  const sqz = squash>0 ? squash/9 : 0;
+  const scaleX = SPRITE_SCALE * (1 + sqz*0.22), scaleY = SPRITE_SCALE * (1 - sqz*0.22);
   ctx.save();
   ctx.translate(sx,sy);
   ctx.translate(13,34);
-  ctx.scale(SPRITE_SCALE,SPRITE_SCALE);
+  ctx.scale(scaleX,scaleY);
   ctx.translate(-13,-34);
   if(face<0){ ctx.translate(26,0); ctx.scale(-1,1); }
   const skin='#e8b98f', skinSh='#cf9d73', wig='#f3f0e6', wigSh='#d3cfc0', coat=cd.coat, coatSh=shade(coat,-18), acc=cd.accent, boot='#2a2320', breech='#d9cdae', ol='#20160e';
@@ -750,6 +760,25 @@ function drawBlock(b){
 }
 
 // ---------- RENDER ----------
+// Rolling hill silhouette that anchors a skyline row to the horizon. Drawn full-width and
+// independent of level.gaps, so buildings always sit on continuous ground — even when a
+// foreground pit passes underneath them — instead of appearing to float over the gap.
+function drawHillBand(scroll, baseY, color){
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, H + 4);
+  const step = 20;
+  for(let x=0; x<=W; x+=step){
+    const wx = x + scroll;
+    // bump is always >=0 so the fill top never dips below baseY — guarantees the band
+    // always fully covers the strip under the buildings, gap or no gap, with no seam.
+    const bump = Math.abs(Math.sin(wx*0.010))*10 + Math.abs(Math.sin(wx*0.027 + 1.4))*6;
+    ctx.lineTo(x, baseY - bump);
+  }
+  ctx.lineTo(W, H + 4);
+  ctx.closePath();
+  ctx.fill();
+}
 // Parallax colonial-Philadelphia skyline. scroll = already-parallaxed camera offset,
 // baseY = building baseline (buildings extend from here up; kept near the ground so the
 // city sits right behind the characters with no empty filler band), col = building fill.
@@ -869,9 +898,10 @@ function render(){
 }
 
 function drawWorld(){
-  // daytime sky
+  // daytime sky — tinted per-level so each document world reads as its own place
+  const skyBase = level.sky || '#243b6b';
   const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#8fc4e8'); g.addColorStop(0.5,'#bfe0f0'); g.addColorStop(1,'#eaf4e0');
+  g.addColorStop(0,shade(skyBase,44)); g.addColorStop(0.5,shade(skyBase,58)); g.addColorStop(1,shade(skyBase,68));
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
   // soft sun glow
   const sunx=W*0.78, suny=90;
@@ -879,16 +909,25 @@ function drawWorld(){
   sg.addColorStop(0,'rgba(255,250,220,.9)'); sg.addColorStop(1,'rgba(255,250,220,0)');
   ctx.fillStyle=sg; ctx.fillRect(sunx-160,suny-160,320,320);
   ctx.fillStyle='#fff7dc'; ctx.beginPath(); ctx.arc(sunx,suny,26,0,7); ctx.fill();
-  // drifting clouds (white, daytime)
-  ctx.fillStyle='rgba(255,255,255,.72)';
+  // drifting clouds — poofy Kirby-style puffs (overlapping circles) instead of flat bars
+  ctx.fillStyle='rgba(255,255,255,.8)';
   for(let i=0;i<6;i++){
     const cw=90+ (i%3)*26;
     const cx=((i*260 - camX*0.18)%(W+260)+(W+260))%(W+260) - 130;
     const cy=40 + (i*37)%150;
-    ctx.fillRect(cx,cy,cw,14); ctx.fillRect(cx+14,cy-8,cw-30,10); ctx.fillRect(cx+24,cy+14,cw-48,8);
+    ctx.beginPath();
+    ctx.arc(cx+cw*0.22, cy+7, 11, 0, 7);
+    ctx.arc(cx+cw*0.45, cy,    14, 0, 7);
+    ctx.arc(cx+cw*0.68, cy+4,  12, 0, 7);
+    ctx.arc(cx+cw*0.5,  cy+10, 15, 0, 7);
+    ctx.fill();
   }
+  // distant rolling hills — continuous horizon band that grounds the far skyline even over gaps
+  drawHillBand(camX*0.22, level.groundY-70, shade(level.hills||'#1a2a4d', -4));
   // colonial Philadelphia skyline — far row (hazy blue-grey, slow parallax, sits high)
   drawColonialSkyline(camX*0.22, level.groundY-70, '#7f95ad', false);
+  // near hill/foundation band — grounds the near skyline row the same way
+  drawHillBand(camX*0.42, level.groundY-6, shade('#9a5a3c', -32));
   // colonial Philadelphia skyline — near row (warm brick, extends down right behind the characters)
   drawColonialSkyline(camX*0.42, level.groundY-6, '#9a5a3c', true);
   // ground with gaps
@@ -974,10 +1013,10 @@ function drawWorld(){
   if(starTimer>0){
     const hue=Math.floor(Date.now()/60)%360;
     ctx.save(); ctx.shadowBlur=16; ctx.shadowColor=`hsl(${hue},90%,60%)`;
-    drawFounder(player.x-camX, player.y, charData, player.face, Math.floor(player.anim), false);
+    drawFounder(player.x-camX, player.y, charData, player.face, Math.floor(player.anim), false, player.squash);
     ctx.restore();
   } else {
-    drawFounder(player.x-camX, player.y, charData, player.face, Math.floor(player.anim), flashing);
+    drawFounder(player.x-camX, player.y, charData, player.face, Math.floor(player.anim), flashing, player.squash);
   }
   // floaters
   ctx.textAlign='center'; ctx.font='10px "Press Start 2P"';
