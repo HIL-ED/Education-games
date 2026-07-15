@@ -59,10 +59,26 @@
     margin-left: auto; margin-right: auto;
   }
 
+  .section-head { padding: 28px 48px 0; text-align: center; }
+  .section-head h2 {
+    font-family: 'Caprasimo', serif; font-weight: 400;
+    font-size: 22px; margin: 0 0 8px; color: #16305c;
+  }
+  .section-head p { font-size: 14px; opacity: .8; margin: 0 auto; max-width: 68ch; }
+  .campaigns-head { padding-top: 8px; }
+  .campaigns-head h2 { color: #9f3f20; }
+
   .grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px; padding: 32px 48px 48px;
+    gap: 20px; padding: 24px 48px 40px;
   }
+  .grid.campaigns { padding-bottom: 48px; }
+  .game.campaign { background: #16305c; color: #fff2eb; }
+  .game.campaign h2 { color: #fff2eb; }
+  .game.campaign p { color: #fff2eb; opacity: .85; }
+  .game.campaign .tag { background: rgba(255,242,235,0.14); color: #9ed7d0; }
+  .game.campaign .cta { color: #f2c14e; text-decoration: none; }
+  .game.campaign .cta:hover { color: #fff2eb; }
   .game {
     display: flex; flex-direction: column;
     text-decoration: none; color: inherit;
@@ -127,7 +143,12 @@
 
   <div class="intro">
     <h1>Popular With Classrooms</h1>
-    <p>Standards-aligned, teacher-tested, genuinely fun. Pick a title below and start playing.</p>
+    <p>Standards-aligned, teacher-tested, genuinely fun. Play a digital game right now, or bring a full campaign into your classroom. <a href="../blog/how-much-time-does-ene-take/">What's the difference? →</a></p>
+  </div>
+
+  <div class="section-head">
+    <h2>Short-Form Digital Games</h2>
+    <p>Playable right now, free, in any browser — a single class period is all you need.</p>
   </div>
 
   <div class="grid">
@@ -198,6 +219,40 @@
           <h2>More games</h2>
           <p>Additional titles will be added here as they're ready.</p>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-head campaigns-head">
+    <h2>Long-Form Campaigns</h2>
+    <p>Our specialty: unit- and semester-long narratives you run in your own classroom, where students return to the same roles and consequences as the story compounds. Running campaigns like these, we've seen average absences drop from 6.3 to 4.1 per day.</p>
+  </div>
+
+  <div class="grid campaigns">
+    <div class="game campaign">
+      <div class="body">
+        <span class="tag">Classroom campaign · Semester</span>
+        <h2>The Nations Game</h2>
+        <p>Students lead rival fictional countries through decades of diplomacy — treaties signed and broken, wars, coalitions, refugee crises, and consequences that compound for months. Our students rediscovered the Treaty of Versailles on their own from inside this one.</p>
+        <a class="cta" href="../contact/">Ask about running this →</a>
+      </div>
+    </div>
+
+    <div class="game campaign">
+      <div class="body">
+        <span class="tag">Classroom campaign · Full year</span>
+        <h2>The Business Simulation</h2>
+        <p>Students build and run businesses across an economics course, applying every principle they learn — supply, demand, labor, investment — to enterprises they own and defend all year long.</p>
+        <a class="cta" href="../contact/">Ask about running this →</a>
+      </div>
+    </div>
+
+    <div class="game campaign">
+      <div class="body">
+        <span class="tag">Classroom campaign · Unit</span>
+        <h2>The Industrialization Journey</h2>
+        <p>A decision-tree narrative through the Industrial Revolution: each student starts as a farmer or small-business owner and navigates five years of choices — unions, steam power, safety standards — that decide how their family fares as the world industrializes.</p>
+        <a class="cta" href="../contact/">Ask about running this →</a>
       </div>
     </div>
   </div>
