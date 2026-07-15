@@ -68,11 +68,57 @@
   .campaigns-head { padding-top: 8px; }
   .campaigns-head h2 { color: #9f3f20; }
 
+  /* Filter bar */
+  .filter-bar {
+    padding: 24px 48px 4px;
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 18px 32px;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 8px; }
+  .filter-group legend, .filter-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: #201e1d; opacity: .6; padding: 0; margin: 0; border: 0;
+  }
+  .filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    border: 1.5px solid rgba(32,30,29,0.12); border-radius: 999px;
+    padding: 7px 16px; cursor: pointer;
+    background: #ebddc5; color: #201e1d;
+    transition: background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
+  }
+  .chip:hover { background: #e0d0b3; }
+  .chip:active { transform: translateY(1px); }
+  .chip:focus-visible { outline: 2px solid #16305c; outline-offset: 2px; }
+  .chip-content.active { background: #16305c; border-color: #16305c; color: #fff2eb; }
+  .chip-style.active { background: #cc6b31; border-color: #cc6b31; color: #fff2eb; }
+
+  .clear-filters {
+    font-family: inherit; font-size: 13px; font-weight: 700;
+    background: transparent; border: 1.5px solid #9f3f20; color: #9f3f20;
+    border-radius: 999px; padding: 7px 16px; cursor: pointer; white-space: nowrap;
+    align-self: flex-end; margin-left: auto;
+  }
+  .clear-filters:hover { background: #9f3f20; color: #fff2eb; }
+  .clear-filters:focus-visible { outline: 2px solid #16305c; outline-offset: 2px; }
+
+  .filter-status { padding: 6px 48px 0; font-size: 13px; opacity: .7; min-height: 1.3em; }
+
+  .group-head { padding: 22px 48px 0; }
+  .group-head h3 {
+    font-family: 'Caprasimo', serif; font-weight: 400;
+    font-size: 17px; margin: 0; color: #16305c;
+  }
+
+  .no-results {
+    padding: 8px 48px 40px; text-align: center; font-size: 14px; opacity: .75;
+  }
+
   .grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px; padding: 24px 48px 40px;
   }
   .grid.campaigns { padding-bottom: 48px; }
+  .content-section .grid { padding-top: 16px; }
   .game.campaign { background: #16305c; color: #fff2eb; }
   .game.campaign h2 { color: #fff2eb; }
   .game.campaign p { color: #fff2eb; opacity: .85; }
@@ -112,6 +158,16 @@
     font-size: 13px; font-weight: 600; color: #cc6b31;
   }
 
+  .tags-row { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 0; }
+  .tag-pill {
+    font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap; line-height: 1.5;
+  }
+  .tag-pill.tag-content { background: rgba(22,48,92,0.12); color: #16305c; }
+  .tag-pill.tag-style { background: rgba(204,107,49,0.16); color: #9f3f20; }
+  .game.campaign .tag-pill.tag-content { background: rgba(158,215,208,0.18); color: #9ed7d0; }
+  .game.campaign .tag-pill.tag-style { background: rgba(242,193,78,0.18); color: #f2c14e; }
+
   .soon { opacity: .55; }
   .soon .game:hover { transform: none; box-shadow: 0 3px 10px rgba(46,43,37,0.16); }
 
@@ -127,6 +183,11 @@
     .nav { flex-wrap: wrap; padding: 16px 24px; }
     .intro { padding: 32px 24px 8px; }
     .grid { padding: 24px 24px 32px; }
+    .filter-bar { padding: 20px 24px 4px; align-items: flex-start; }
+    .clear-filters { margin-left: 0; align-self: flex-start; }
+    .filter-status { padding: 6px 24px 0; }
+    .group-head { padding: 20px 24px 0; }
+    .no-results { padding: 8px 24px 32px; }
     footer { flex-direction: column; gap: 8px; padding: 20px 24px; text-align: center; }
   }
 </style>
@@ -152,117 +213,154 @@
     <p>Playable right now, free, in any browser: a single class period is all you need.</p>
   </div>
 
+  <div class="filter-bar" role="region" aria-label="Filter games by content area and style">
+    <div class="filter-group">
+      <span class="filter-label" id="content-filter-label">Content</span>
+      <div class="filter-chips" role="radiogroup" aria-labelledby="content-filter-label" id="content-filters">
+        <button type="button" class="chip chip-content active" role="radio" aria-checked="true" tabindex="0" data-content-filter="all">All Content</button>
+        <button type="button" class="chip chip-content" role="radio" aria-checked="false" tabindex="-1" data-content-filter="us-history">U.S. History</button>
+        <button type="button" class="chip chip-content" role="radio" aria-checked="false" tabindex="-1" data-content-filter="world-history">World History</button>
+        <button type="button" class="chip chip-content" role="radio" aria-checked="false" tabindex="-1" data-content-filter="gov-econ">Government &amp; Economics</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label" id="style-filter-label">Game Style</span>
+      <div class="filter-chips" aria-labelledby="style-filter-label" id="style-filters">
+        <button type="button" class="chip chip-style active" aria-pressed="true" data-style-filter="all">All Styles</button>
+      </div>
+    </div>
+    <button type="button" class="clear-filters" id="clear-filters">Clear Filters</button>
+  </div>
+  <p class="filter-status" id="filter-status" aria-live="polite"></p>
+
+  <div class="content-section" data-section="us-history">
+    <div class="group-head"><h3>U.S. History</h3></div>
+    <div class="grid">
+      <a class="game" href="founders-quest/" style="background:#dce8f0;" data-content="us-history" data-style="platformer review">
+        <div class="shot"><img src="../images/games/founders-quest-2.png" alt="Founders Quest: Pixel Republic gameplay, an 8-bit platformer level" loading="lazy"></div>
+        <div class="body">
+          <span class="tag">Free · Ready to play</span>
+          <h2>Founders Quest: Pixel Republic</h2>
+          <p>An 8-bit platformer where you play as Jefferson, Madison, or Hamilton, each with a different perk, racing through levels themed around the Declaration of Independence, the Articles of Confederation, and the Constitution.</p>
+          <span class="cta">Play →</span>
+        </div>
+      </a>
+
+      <a class="game" href="the-progressive-gazette/" style="background:#ebddc5;" data-content="us-history" data-style="primary-sources review">
+        <div class="shot"><img src="../images/games/the-progressive-gazette.png" alt="The Progressive Gazette, three newspaper perspectives on child labor" loading="lazy"></div>
+        <div class="body">
+          <span class="tag">Free · Ready to play</span>
+          <h2>The Progressive Gazette</h2>
+          <p>Run the presses on real Progressive-Era debates like child labor, displaying three perspectives at once, pro, anti, and neutral, each from a different American city.</p>
+          <span class="cta">Play →</span>
+        </div>
+      </a>
+
+      <a class="game" href="cold-war-correspondent/" style="background:#e8f6f4;" data-content="us-history world-history" data-style="narrative primary-sources">
+        <div class="shot"><img src="../images/games/cold-war-correspondent.png" alt="Cold War Correspondent gameplay, a newspaper front page with a breaking story" loading="lazy"></div>
+        <div class="body">
+          <span class="tag">Free · Ready to play</span>
+          <h2>Cold War Correspondent</h2>
+          <p>Work as a news reporter during three distinct periods of the Cold War. Strive for  accurate reporting during a period of heavy distrust and bias. </p>
+          <span class="cta">Play →</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <div class="content-section" data-section="world-history">
+    <div class="group-head"><h3>World History</h3></div>
+    <div class="grid">
+      <a class="game" href="medieval-fate/" style="background:#e5ddf0;" data-content="world-history" data-style="narrative decision-making">
+        <div class="shot"><img src="../images/games/medieval-fate.png" alt="Medieval Fate, a character sheet for a monk in medieval society" loading="lazy"></div>
+        <div class="body">
+          <span class="tag">Free · Ready to play</span>
+          <h2>Medieval Fate</h2>
+          <p>Draw a random role in medieval society, serf, clergy, or noble, and see how far your choices carry you through a rigid, class-stratified world.</p>
+          <span class="cta">Play →</span>
+        </div>
+      </a>
+
+      <a class="game" href="manchester-rising/" style="background:#e8f6f4;" data-content="world-history" data-style="management simulation">
+        <div class="shot"><img src="../images/games/manchester-rising.png" alt="Manchester Rising, a tile-based industrial city builder map" loading="lazy"></div>
+        <div class="body">
+          <span class="tag">Free · Ready to play</span>
+          <h2>Manchester Rising</h2>
+          <p>Build and manage a 19th-century city as it transforms from a pre-industrial market town into a factory powerhouse, and weigh its growth against its human cost.</p>
+          <span class="cta">Play →</span>
+        </div>
+      </a>
+
+      <a class="game" href="evidence-mystery-wwi/" style="background:#e8dcc8;" data-content="world-history" data-style="investigation primary-sources">
+        <div class="shot"><img src="../images/games/evidence-mystery-wwi.png" alt="Evidence Mystery: Who Caused World War I? gameplay, the evidence locker of primary-source documents" loading="lazy"></div>
+        <div class="body">
+          <span class="tag">Free · Ready to play</span>
+          <h2>Evidence Mystery: Who Caused World War I?</h2>
+          <p>Examine 28 pieces of primary-source evidence as an investigator for the International Historical Commission and build your own case for what really caused the war.</p>
+          <span class="cta">Play →</span>
+        </div>
+      </a>
+
+      <a class="game" href="silk-road-trade/" style="background:#f2e2c4;" data-content="world-history" data-style="simulation strategy">
+        <div class="shot"><img src="../images/games/silk-road-trade.png" alt="The Silk Roads: Trade & Connection gameplay, a world map showing trading regions" loading="lazy"></div>
+        <div class="body">
+          <span class="tag">Free · Ready to play</span>
+          <h2>The Silk Roads: Trade &amp; Connection</h2>
+          <p>Lead one of six regions along the Silk Road network, trade goods to earn your region's own asymmetric achievement, and build the widest web of trading partners you can.</p>
+          <span class="cta">Play →</span>
+        </div>
+      </a>
+
+      <a class="game" href="meiji-restoration/" style="background:#dfe6ef;" data-content="world-history" data-style="narrative primary-sources decision-making">
+        <div class="shot"><img src="../images/games/meiji-restoration.png" alt="A New Japan: A Meiji Restoration Story gameplay, a branching narrative choice screen" loading="lazy"></div>
+        <div class="body">
+          <span class="tag">Free · Ready to play</span>
+          <h2>A New Japan: A Meiji Restoration Story</h2>
+          <p>Choose a role, samurai, merchant, farmer, or a samurai household's daughter, and live a branching narrative through Japan's transformation from 1853 to 1889, pausing to examine primary sources and reflect along the way.</p>
+          <span class="cta">Play →</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <div class="content-section" data-section="gov-econ">
+    <div class="group-head"><h3>Government &amp; Economics</h3></div>
+    <div class="grid">
+      <a class="game" href="passed/" style="background:#f5e6c8;" data-content="gov-econ" data-style="strategy simulation">
+        <div class="shot"><img src="../images/games/passed.png" alt="Passed gameplay, a policy campaign dashboard with support levels" loading="lazy"></div>
+        <div class="body">
+          <span class="tag">Free · Ready to play</span>
+          <h2>Passed</h2>
+          <p>Grow public support and move a policy idea through the layered structures of American government: from public opinion, to city hall, to the statehouse, to Congress.</p>
+          <span class="cta">Play →</span>
+        </div>
+      </a>
+
+      <a class="game" href="whip-count/" style="background:#f3ddd8;" data-content="gov-econ" data-style="strategy simulation">
+        <div class="shot"><img src="../images/games/whip-count.png" alt="Whip Count, House and Senate vote-count gauges" loading="lazy"></div>
+        <div class="body">
+          <span class="tag">Free · Ready to play</span>
+          <h2>Whip Count</h2>
+          <p>Run an interest group racing a rival lobbyist to win a majority in both chambers of Congress: spend your Political Capital wisely as weekly headlines swing votes for or against you.</p>
+          <span class="cta">Play →</span>
+        </div>
+      </a>
+
+      <a class="game" href="remember-the-amendments/" style="background:#f0dcc4;" data-content="gov-econ" data-style="review">
+        <div class="shot"><img src="../images/games/remember-the-amendments.png" alt="Remember the Amendments gameplay, a matching card grid with a matched amendment pair" loading="lazy"></div>
+        <div class="body">
+          <span class="tag">Free · Ready to play</span>
+          <h2>Remember the Amendments</h2>
+          <p>A timed constitutional matching game: pair each amendment with its definition, its effect on government structure, and its real-world impact across three escalating rounds.</p>
+          <span class="cta">Play →</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <p class="no-results" id="no-results" hidden>No games match the selected filters. <button type="button" class="clear-filters" id="clear-filters-inline">Clear filters</button> to see all games.</p>
+
   <div class="grid">
-    <a class="game" href="founders-quest/" style="background:#dce8f0;">
-      <div class="shot"><img src="../images/games/founders-quest-2.png" alt="Founders Quest: Pixel Republic gameplay, an 8-bit platformer level" loading="lazy"></div>
-      <div class="body">
-        <span class="tag">Free · Ready to play</span>
-        <h2>Founders Quest: Pixel Republic</h2>
-        <p>An 8-bit platformer where you play as Jefferson, Madison, or Hamilton, each with a different perk, racing through levels themed around the Declaration of Independence, the Articles of Confederation, and the Constitution.</p>
-        <span class="cta">Play →</span>
-      </div>
-    </a>
-
-    <a class="game" href="medieval-fate/" style="background:#e5ddf0;">
-      <div class="shot"><img src="../images/games/medieval-fate.png" alt="Medieval Fate, a character sheet for a monk in medieval society" loading="lazy"></div>
-      <div class="body">
-        <span class="tag">Free · Ready to play</span>
-        <h2>Medieval Fate</h2>
-        <p>Draw a random role in medieval society, serf, clergy, or noble, and see how far your choices carry you through a rigid, class-stratified world.</p>
-        <span class="cta">Play →</span>
-      </div>
-    </a>
-
-    <a class="game" href="passed/" style="background:#f5e6c8;">
-      <div class="shot"><img src="../images/games/passed.png" alt="Passed gameplay, a policy campaign dashboard with support levels" loading="lazy"></div>
-      <div class="body">
-        <span class="tag">Free · Ready to play</span>
-        <h2>Passed</h2>
-        <p>Grow public support and move a policy idea through the layered structures of American government: from public opinion, to city hall, to the statehouse, to Congress.</p>
-        <span class="cta">Play →</span>
-      </div>
-    </a>
-
-    <a class="game" href="manchester-rising/" style="background:#e8f6f4;">
-      <div class="shot"><img src="../images/games/manchester-rising.png" alt="Manchester Rising, a tile-based industrial city builder map" loading="lazy"></div>
-      <div class="body">
-        <span class="tag">Free · Ready to play</span>
-        <h2>Manchester Rising</h2>
-        <p>Build and manage a 19th-century city as it transforms from a pre-industrial market town into a factory powerhouse, and weigh its growth against its human cost.</p>
-        <span class="cta">Play →</span>
-      </div>
-    </a>
-
-    <a class="game" href="the-progressive-gazette/" style="background:#ebddc5;">
-      <div class="shot"><img src="../images/games/the-progressive-gazette.png" alt="The Progressive Gazette, three newspaper perspectives on child labor" loading="lazy"></div>
-      <div class="body">
-        <span class="tag">Free · Ready to play</span>
-        <h2>The Progressive Gazette</h2>
-        <p>Run the presses on real Progressive-Era debates like child labor, displaying three perspectives at once, pro, anti, and neutral, each from a different American city.</p>
-        <span class="cta">Play →</span>
-      </div>
-    </a>
-
-    <a class="game" href="whip-count/" style="background:#f3ddd8;">
-      <div class="shot"><img src="../images/games/whip-count.png" alt="Whip Count, House and Senate vote-count gauges" loading="lazy"></div>
-      <div class="body">
-        <span class="tag">Free · Ready to play</span>
-        <h2>Whip Count</h2>
-        <p>Run an interest group racing a rival lobbyist to win a majority in both chambers of Congress: spend your Political Capital wisely as weekly headlines swing votes for or against you.</p>
-        <span class="cta">Play →</span>
-      </div>
-    </a>
-
-    <a class="game" href="evidence-mystery-wwi/" style="background:#e8dcc8;">
-      <div class="shot"><img src="../images/games/evidence-mystery-wwi.png" alt="Evidence Mystery: Who Caused World War I? gameplay, the evidence locker of primary-source documents" loading="lazy"></div>
-      <div class="body">
-        <span class="tag">Free · Ready to play</span>
-        <h2>Evidence Mystery: Who Caused World War I?</h2>
-        <p>Examine 28 pieces of primary-source evidence as an investigator for the International Historical Commission and build your own case for what really caused the war.</p>
-        <span class="cta">Play →</span>
-      </div>
-    </a>
-
-    <a class="game" href="cold-war-correspondent/" style="background:#e8f6f4;">
-      <div class="shot"><img src="../images/games/cold-war-correspondent.png" alt="Cold War Correspondent gameplay, a newspaper front page with a breaking story" loading="lazy"></div>
-      <div class="body">
-        <span class="tag">Free · Ready to play</span>
-        <h2>Cold War Correspondent</h2>
-        <p>Work as a news reporter during three distinct periods of the Cold War. Strive for  accurate reporting during a period of heavy distrust and bias. </p>
-        <span class="cta">Play →</span>
-      </div>
-    </a>
-
-    <a class="game" href="silk-road-trade/" style="background:#f2e2c4;">
-      <div class="shot"><img src="../images/games/silk-road-trade.png" alt="The Silk Roads: Trade & Connection gameplay, a world map showing trading regions" loading="lazy"></div>
-      <div class="body">
-        <span class="tag">Free · Ready to play</span>
-        <h2>The Silk Roads: Trade &amp; Connection</h2>
-        <p>Lead one of six regions along the Silk Road network, trade goods to earn your region's own asymmetric achievement, and build the widest web of trading partners you can.</p>
-        <span class="cta">Play →</span>
-      </div>
-    </a>
-
-    <a class="game" href="meiji-restoration/" style="background:#dfe6ef;">
-      <div class="shot"><img src="../images/games/meiji-restoration.png" alt="A New Japan: A Meiji Restoration Story gameplay, a branching narrative choice screen" loading="lazy"></div>
-      <div class="body">
-        <span class="tag">Free · Ready to play</span>
-        <h2>A New Japan: A Meiji Restoration Story</h2>
-        <p>Choose a role, samurai, merchant, farmer, or a samurai household's daughter, and live a branching narrative through Japan's transformation from 1853 to 1889, pausing to examine primary sources and reflect along the way.</p>
-        <span class="cta">Play →</span>
-      </div>
-    </a>
-
-    <a class="game" href="remember-the-amendments/" style="background:#f0dcc4;">
-      <div class="shot"><img src="../images/games/remember-the-amendments.png" alt="Remember the Amendments gameplay, a matching card grid with a matched amendment pair" loading="lazy"></div>
-      <div class="body">
-        <span class="tag">Free · Ready to play</span>
-        <h2>Remember the Amendments</h2>
-        <p>A timed constitutional matching game: pair each amendment with its definition, its effect on government structure, and its real-world impact across three escalating rounds.</p>
-        <span class="cta">Play →</span>
-      </div>
-    </a>
-
     <div class="soon">
       <div class="game">
         <div class="body">
@@ -318,5 +416,179 @@
     </div>
   </footer>
 </div>
+<script>
+(function () {
+  'use strict';
+
+  // Central label/order config. New styles just need a label here (optional —
+  // unmapped slugs fall back to a title-cased version of the slug), no other
+  // filtering logic needs to change.
+  var CONTENT_LABELS = {
+    'us-history': 'U.S. History',
+    'world-history': 'World History',
+    'gov-econ': 'Government & Economics'
+  };
+  var STYLE_LABELS = {
+    'narrative': 'Narrative',
+    'management': 'Management',
+    'review': 'Review',
+    'simulation': 'Simulation',
+    'strategy': 'Strategy',
+    'investigation': 'Investigation',
+    'platformer': 'Platformer',
+    'primary-sources': 'Primary Sources',
+    'decision-making': 'Decision-Making'
+  };
+  var STYLE_ORDER = ['narrative', 'management', 'review', 'simulation', 'strategy', 'investigation', 'platformer', 'primary-sources', 'decision-making'];
+
+  function titleCase(slug) {
+    return slug.replace(/-/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  }
+  function styleLabel(slug) { return STYLE_LABELS[slug] || titleCase(slug); }
+  function contentLabel(slug) { return CONTENT_LABELS[slug] || titleCase(slug); }
+  function tags(el, attr) {
+    return (el.getAttribute(attr) || '').trim().split(/\s+/).filter(Boolean);
+  }
+
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.game[data-content]'));
+  if (!cards.length) return;
+
+  // Render compact content/style tag pills on each card from its data attributes.
+  cards.forEach(function (card) {
+    var body = card.querySelector('.body');
+    var cta = body.querySelector('.cta');
+    var row = document.createElement('div');
+    row.className = 'tags-row';
+    tags(card, 'data-content').forEach(function (slug) {
+      var pill = document.createElement('span');
+      pill.className = 'tag-pill tag-content';
+      pill.textContent = contentLabel(slug);
+      row.appendChild(pill);
+    });
+    tags(card, 'data-style').forEach(function (slug) {
+      var pill = document.createElement('span');
+      pill.className = 'tag-pill tag-style';
+      pill.textContent = styleLabel(slug);
+      row.appendChild(pill);
+    });
+    body.insertBefore(row, cta);
+  });
+
+  // Build the "Game Style" chip row from whatever styles are actually in use,
+  // so adding a new style tag to a card automatically adds its filter chip.
+  var stylesInUse = {};
+  cards.forEach(function (card) {
+    tags(card, 'data-style').forEach(function (slug) { stylesInUse[slug] = true; });
+  });
+  var orderedStyles = STYLE_ORDER.filter(function (s) { return stylesInUse[s]; })
+    .concat(Object.keys(stylesInUse).filter(function (s) { return STYLE_ORDER.indexOf(s) === -1; }).sort());
+
+  var styleFilterContainer = document.getElementById('style-filters');
+  orderedStyles.forEach(function (slug) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chip chip-style';
+    btn.setAttribute('aria-pressed', 'false');
+    btn.setAttribute('data-style-filter', slug);
+    btn.textContent = styleLabel(slug);
+    styleFilterContainer.appendChild(btn);
+  });
+
+  var contentButtons = Array.prototype.slice.call(document.querySelectorAll('[data-content-filter]'));
+  var styleButtons = Array.prototype.slice.call(document.querySelectorAll('[data-style-filter]'));
+  var sections = Array.prototype.slice.call(document.querySelectorAll('.content-section'));
+  var statusEl = document.getElementById('filter-status');
+  var noResultsEl = document.getElementById('no-results');
+
+  var activeContent = 'all';
+  var activeStyles = {};
+  var activeStyleCount = 0;
+
+  function setActiveContent(slug) {
+    activeContent = slug;
+    contentButtons.forEach(function (btn) {
+      var isActive = btn.getAttribute('data-content-filter') === slug;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-checked', isActive ? 'true' : 'false');
+      btn.tabIndex = isActive ? 0 : -1;
+    });
+    applyFilters();
+  }
+
+  function toggleStyle(slug) {
+    if (slug === 'all') {
+      activeStyles = {};
+      activeStyleCount = 0;
+    } else if (activeStyles[slug]) {
+      delete activeStyles[slug];
+      activeStyleCount--;
+    } else {
+      activeStyles[slug] = true;
+      activeStyleCount++;
+    }
+    styleButtons.forEach(function (btn) {
+      var slugAttr = btn.getAttribute('data-style-filter');
+      var isActive = slugAttr === 'all' ? activeStyleCount === 0 : !!activeStyles[slugAttr];
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+    applyFilters();
+  }
+
+  contentButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () { setActiveContent(btn.getAttribute('data-content-filter')); });
+  });
+  document.getElementById('content-filters').addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowDown' && e.key !== 'ArrowLeft' && e.key !== 'ArrowUp') return;
+    var idx = contentButtons.indexOf(document.activeElement);
+    if (idx === -1) return;
+    e.preventDefault();
+    var forward = e.key === 'ArrowRight' || e.key === 'ArrowDown';
+    var next = contentButtons[(idx + (forward ? 1 : -1) + contentButtons.length) % contentButtons.length];
+    next.focus();
+    setActiveContent(next.getAttribute('data-content-filter'));
+  });
+
+  styleButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () { toggleStyle(btn.getAttribute('data-style-filter')); });
+  });
+
+  function clearFilters() {
+    setActiveContent('all');
+    toggleStyle('all');
+  }
+  document.getElementById('clear-filters').addEventListener('click', clearFilters);
+  document.getElementById('clear-filters-inline').addEventListener('click', clearFilters);
+
+  function applyFilters() {
+    var visibleCount = 0;
+    sections.forEach(function (section) {
+      var sectionVisible = 0;
+      Array.prototype.slice.call(section.querySelectorAll('.game[data-content]')).forEach(function (card) {
+        var contentMatch = activeContent === 'all' || tags(card, 'data-content').indexOf(activeContent) !== -1;
+        var styleMatch = activeStyleCount === 0 || tags(card, 'data-style').some(function (s) { return activeStyles[s]; });
+        var visible = contentMatch && styleMatch;
+        card.style.display = visible ? '' : 'none';
+        if (visible) { sectionVisible++; visibleCount++; }
+      });
+      section.hidden = sectionVisible === 0;
+    });
+
+    noResultsEl.hidden = visibleCount !== 0;
+
+    if (activeContent === 'all' && activeStyleCount === 0) {
+      statusEl.textContent = '';
+    } else {
+      var parts = [];
+      if (activeContent !== 'all') parts.push(contentLabel(activeContent));
+      Object.keys(activeStyles).forEach(function (s) { parts.push(styleLabel(s)); });
+      statusEl.textContent = 'Showing ' + visibleCount + ' game' + (visibleCount === 1 ? '' : 's') +
+        ' — filtered by ' + parts.join(', ') + '.';
+    }
+  }
+
+  applyFilters();
+})();
+</script>
 </body>
 </html>
