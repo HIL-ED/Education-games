@@ -16,40 +16,43 @@
 <link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100%; min-height: 100%; }
   body {
-    margin: 0; min-height: 100vh;
-    background: #e4d8c2; color: #201e1d;
+    min-height: 100vh;
+    background: #f5ead8; color: #201e1d;
     font-family: 'Figtree', system-ui, sans-serif;
-    display: flex; justify-content: center;
-    padding: 48px 20px;
   }
   a { color: #cc6b31; }
   a:hover { color: #9f3f20; }
 
   .page {
-    width: 100%; max-width: 1280px;
-    background: #f5ead8; border-radius: 28px; overflow: hidden;
-    box-shadow: 0 12px 32px rgba(46,43,37,0.22);
+    width: 100%; min-height: 100vh; max-width: none; margin: 0;
+    border-radius: 0; box-shadow: none; overflow-x: hidden;
   }
 
+  .content-inner { width: min(100% - 40px, 1280px); margin: 0 auto; }
+  @media (min-width: 701px) { .content-inner { width: min(100% - 64px, 1280px); } }
+  @media (min-width: 1025px) { .content-inner { width: min(100% - 96px, 1280px); } }
+
   .nav {
-    display: flex; align-items: center; gap: 20px;
-    padding: 20px 48px; background: #f9f4ed;
+    background: #f9f4ed;
     border-bottom: 1px solid rgba(32,30,29,0.08);
   }
-  .nav .brand {
-    margin-right: auto; text-decoration: none;
-    font-family: 'Caprasimo', serif; font-size: 20px; color: #16305c;
+  .nav .content-inner {
+    display: flex; align-items: center; gap: 20px;
+    padding: 20px 0;
   }
-  .nav .brand:hover { color: #16305c; opacity: .85; }
+  .nav .logo { margin-right: auto; }
+  .nav .logo img { height: 150px; width: auto; display: block; }
   .nav a.navlink {
     text-decoration: none; color: #201e1d;
     font-size: 14px; font-weight: 600;
   }
   .nav a.navlink:hover { color: #9f3f20; }
+  .nav a.navlink.active { color: #16305c; font-weight: 700; }
 
   .intro {
-    padding: 48px 48px 8px; text-align: center;
+    padding: 48px 0 8px; text-align: center;
   }
   .intro h1 {
     font-family: 'Caprasimo', serif; font-weight: 400;
@@ -60,7 +63,7 @@
     margin-left: auto; margin-right: auto;
   }
 
-  .section-head { padding: 28px 48px 0; text-align: center; }
+  .section-head { padding: 28px 0 0; text-align: center; }
   .section-head h2 {
     font-family: 'Caprasimo', serif; font-weight: 400;
     font-size: 22px; margin: 0 0 8px; color: #16305c;
@@ -82,7 +85,7 @@
 
   /* Filter bar */
   .filter-bar {
-    padding: 24px 48px 4px;
+    padding: 24px 0 4px;
     display: flex; flex-wrap: wrap; align-items: flex-end; gap: 18px 32px;
   }
   .filter-group { display: flex; flex-direction: column; gap: 8px; }
@@ -115,11 +118,11 @@
   .clear-filters:hover { background: #9f3f20; color: #fff2eb; }
   .clear-filters:focus-visible { outline: 2px solid #16305c; outline-offset: 2px; }
 
-  .filter-status { padding: 6px 48px 0; font-size: 13px; opacity: .7; min-height: 1.3em; }
+  .filter-status { padding: 6px 0 0; font-size: 13px; opacity: .7; min-height: 1.3em; }
 
   /* Browse-by tabs */
   .browse-tabs {
-    display: flex; gap: 24px; padding: 20px 48px 0;
+    display: flex; gap: 24px; padding: 20px 0 0;
     border-bottom: 1px solid rgba(32,30,29,0.1);
   }
   .browse-tab {
@@ -166,12 +169,12 @@
   }
 
   .no-results {
-    padding: 8px 48px 40px; text-align: center; font-size: 14px; opacity: .75;
+    padding: 8px 0 40px; text-align: center; font-size: 14px; opacity: .75;
   }
 
   .grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px; padding: 24px 48px 40px;
+    gap: 20px; padding: 24px 0 40px;
   }
   .grid.campaigns { padding-bottom: 48px; }
   .game.campaign { background: #16305c; color: #fff2eb; }
@@ -227,52 +230,58 @@
   .soon .game:hover { transform: none; box-shadow: 0 3px 10px rgba(46,43,37,0.16); }
 
   footer {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 22px 48px; background: #f9f4ed;
+    background: #f9f4ed;
     border-top: 1px solid rgba(32,30,29,0.08);
     font-size: 13px; opacity: .7;
+  }
+  footer .content-inner {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 22px 0;
   }
   footer a { text-decoration: none; }
 
   @media (max-width: 640px) {
-    .nav { flex-wrap: wrap; padding: 16px 24px; }
-    .intro { padding: 32px 24px 8px; }
-    .grid { padding: 24px 24px 32px; }
-    .filter-bar { padding: 20px 24px 4px; align-items: flex-start; }
+    .nav .content-inner { flex-wrap: wrap; padding: 16px 0; }
+    .intro { padding: 32px 0 8px; }
+    .grid { padding: 24px 0 32px; }
+    .filter-bar { padding: 20px 0 4px; align-items: flex-start; }
     .clear-filters { margin-left: 0; align-self: flex-start; }
-    .filter-status { padding: 6px 24px 0; }
-    .browse-tabs { padding: 20px 24px 0; gap: 18px; }
+    .filter-status { padding: 6px 0 0; }
+    .browse-tabs { padding: 20px 0 0; gap: 18px; }
     .carousel-head { padding: 0 24px; }
     .carousel-track { padding: 16px 24px 20px; scroll-padding-left: 24px; }
     .carousel-track .game { flex-basis: 240px; width: 240px; }
     .carousel-arrow { width: 36px; height: 36px; }
-    .no-results { padding: 8px 24px 32px; }
-    footer { flex-direction: column; gap: 8px; padding: 20px 24px; text-align: center; }
+    .no-results { padding: 8px 0 32px; }
+    footer .content-inner { flex-direction: column; gap: 8px; padding: 20px 0; text-align: center; }
   }
 </style>
 </head>
 <body>
 <div class="page">
   <div class="nav">
-    <a class="brand" href="../">Humanities Immersed Learning</a>
-    <a class="navlink" href="../">Home</a>
-    <a class="navlink" href="../teachers/">Teachers</a>
-    <a class="navlink" href="../blog/">Blog</a>
-    <a class="navlink" href="../about/">About</a>
-    <a class="navlink" href="../contact/">Contact</a>
+    <div class="content-inner">
+      <a class="logo" href="../"><img src="../images/logo-nav.png" alt="Humanities Immersed Learning LLC"></a>
+      <a class="navlink" href="../">Home</a>
+      <a class="navlink" href="../teachers/">Teachers</a>
+      <a class="navlink active" href="../games/" aria-current="page">Games</a>
+      <a class="navlink" href="../blog/">Blog</a>
+      <a class="navlink" href="../about/">About</a>
+      <a class="navlink" href="../contact/">Contact</a>
+    </div>
   </div>
 
-  <div class="intro">
+  <div class="intro content-inner">
     <h1>Popular With Classrooms</h1>
     <p>Standards-aligned, teacher-tested, genuinely fun. Play a digital game right now, or bring a full campaign into your classroom. <a href="../blog/how-much-time-does-ene-take/">What's the difference? →</a></p>
   </div>
 
-  <div class="section-head">
+  <div class="section-head content-inner">
     <h2>Short-Form Digital Games</h2>
     <p>Playable right now, free, in any browser: a single class period is all you need.</p>
   </div>
 
-  <div class="filter-bar js-only" role="region" aria-label="Filter games by content area and style">
+  <div class="filter-bar content-inner js-only" role="region" aria-label="Filter games by content area and style">
     <div class="filter-group">
       <span class="filter-label" id="content-filter-label">Content</span>
       <div class="filter-chips" role="radiogroup" aria-labelledby="content-filter-label" id="content-filters">
@@ -287,24 +296,24 @@
     </div>
     <button type="button" class="clear-filters" id="clear-filters">Clear Filters</button>
   </div>
-  <p class="filter-status js-only" id="filter-status" aria-live="polite"></p>
+  <p class="filter-status content-inner js-only" id="filter-status" aria-live="polite"></p>
 
-  <div class="browse-tabs js-only" role="tablist" aria-label="Browse short-form games by">
+  <div class="browse-tabs content-inner js-only" role="tablist" aria-label="Browse short-form games by">
     <button type="button" class="browse-tab" id="tab-content" role="tab" aria-selected="true" aria-controls="panel-content" tabindex="0">Browse by Content</button>
     <button type="button" class="browse-tab" id="tab-style" role="tab" aria-selected="false" aria-controls="panel-style" tabindex="-1">Browse by Style</button>
   </div>
-  <div id="browse-wrap" class="js-only">
+  <div id="browse-wrap" class="content-inner js-only">
     <div id="panel-content" role="tabpanel" aria-labelledby="tab-content"></div>
     <div id="panel-style" role="tabpanel" aria-labelledby="tab-style" hidden></div>
   </div>
 
-  <div id="filtered-view" class="js-only" hidden>
+  <div id="filtered-view" class="content-inner js-only" hidden>
     <h2 class="sr-only">Filtered results</h2>
     <div class="grid" id="filtered-grid"></div>
     <p class="no-results" id="no-results" hidden>No games match the selected filters. <button type="button" class="clear-filters" id="clear-filters-inline">Clear filters</button> to see all games.</p>
   </div>
 
-  <div class="grid noscript-fallback">
+  <div class="grid noscript-fallback content-inner">
     <a class="game" href="founders-quest/" style="background:#dce8f0;">
       <div class="shot"><img src="../images/games/founders-quest-2.png" alt="Founders Quest: Pixel Republic gameplay, an 8-bit platformer level" loading="lazy"></div>
       <div class="body">
@@ -406,7 +415,7 @@
     </a>
   </div>
 
-  <div class="grid">
+  <div class="grid content-inner">
     <div class="soon">
       <div class="game">
         <div class="body">
@@ -418,12 +427,12 @@
     </div>
   </div>
 
-  <div class="section-head campaigns-head" id="campaigns">
+  <div class="section-head campaigns-head content-inner" id="campaigns">
     <h2>Long-Form Campaigns</h2>
     <p>Our specialty: unit- and semester-long narratives you run in your own classroom, where students return to the same roles and consequences as the story compounds. Running campaigns like these, we've seen average absences drop from 6.3 to 4.1 per day.</p>
   </div>
 
-  <div class="grid campaigns">
+  <div class="grid campaigns content-inner">
     <div class="game campaign">
       <div class="body">
         <span class="tag">Classroom campaign · Semester</span>
@@ -453,12 +462,14 @@
   </div>
 
   <footer>
-    <div>© 2026 Humanities Immersed Learning LLC</div>
-    <div style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">
-      <a href="../">Back to Home</a>
-      <a href="../about/">About</a>
-      <a href="https://www.linkedin.com/company/humanities-immersed-learning-llc" target="_blank" rel="noopener">LinkedIn</a>
-      <a href="https://www.teacherspayteachers.com/store/humanities-immersed-learning" target="_blank" rel="noopener">TPT Store</a>
+    <div class="content-inner">
+      <div>© 2026 Humanities Immersed Learning LLC</div>
+      <div style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">
+        <a href="../">Back to Home</a>
+        <a href="../about/">About</a>
+        <a href="https://www.linkedin.com/company/humanities-immersed-learning-llc" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://www.teacherspayteachers.com/store/humanities-immersed-learning" target="_blank" rel="noopener">TPT Store</a>
+      </div>
     </div>
   </footer>
 </div>
