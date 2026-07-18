@@ -94,6 +94,7 @@
   .instructions-card p{margin:0;}
   .instructions-card ul{margin:4px 0 0; padding-left:20px;}
   .instructions-card li{margin-bottom:4px;}
+  .instructions-card .warn-line{color:#f0b09f;}
   .instructions-continue-bar{display:flex; justify-content:center; margin:34px 0 10px;}
   .review-instructions-bar{display:flex; justify-content:center; margin-top:30px;}
   .btn-secondary-link{
@@ -172,13 +173,16 @@
   .topbar .stats{display:flex; gap:18px; align-items:center; flex-wrap:wrap;}
   .stat-chip{text-align:center; min-width:52px;}
   .stat-chip .num{font-family:var(--font-display); font-size:19px; font-weight:400; color:var(--brass-bright);}
+  .stat-chip .num.danger{color:var(--ration-red-bright); animation:pulse-danger 1.4s ease-in-out infinite;}
+  @keyframes pulse-danger{ 0%,100%{opacity:1;} 50%{opacity:.5;} }
+  @media (prefers-reduced-motion: reduce){ .stat-chip .num.danger{animation:none;} }
   .stat-chip .lbl{font-family:var(--font-display); font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:#a89b76;}
 
   .family-panel{
     display:flex; gap:14px; flex-wrap:wrap; margin-bottom:16px;
   }
   .family-card{
-    flex:1; min-width:220px;
+    flex:1; min-width:200px;
     background:linear-gradient(180deg, var(--parchment) 0%, var(--parchment-dark) 100%);
     color:var(--ink); border:1px solid #b79f6e; border-radius:9px;
     padding:12px 16px;
@@ -347,6 +351,7 @@
   <div class="instructions-card">
     <h4>The goal</h4>
     <p>Keep your household's <b>Health</b>, <b>Morale</b>, and standing in the community (<b>Trust</b>) as high as you can across the whole war, while managing scarce cash. There's no single "win" state: the point is to feel the trade-offs the homefront actually forced on families, and to see how your choices add up by the end.</p>
+    <p class="warn-line">⚠ If your household's Health ever reaches zero, the war will cost you someone at home, not just at the front. You'll get a warning first, but it's on you to change course.</p>
     <h4>The Ration Board</h4>
     <p>Each turn, your household needs a set of goods: food, fuel, and other essentials that were tightly rationed during both world wars. For each one, you'll choose:</p>
     <ul>
@@ -356,8 +361,8 @@
     </ul>
     <h4>War Bonds</h4>
     <p>Each turn you can put spare cash into War Bonds. You won't see that money again until after the war, but it builds Morale and Trust: it's how ordinary families helped finance the war effort.</p>
-    <h4>The Draft, and the rest of the household</h4>
-    <p>Your household includes a spouse and a draft-age son. As the war goes on, you'll face the draft lottery, letters from the front, and a scripted arc where your spouse takes on new work outside the home. These moments carry their own choices and consequences.</p>
+    <h4>Your household</h4>
+    <p>You're managing a family of four: a father, a mother, a son of draft age, and younger children too young to serve or work. Your father is drafted early in the war, no choice in the matter, the same as it was for millions of real households. Later, your son's own number comes up, and this time you'll face a choice about how far you're willing to go to keep him home. Both moments carry letters from the front, and both carry risk. Meanwhile, your mother takes on new work outside the home as the war goes on.</p>
     <h4>Random events</h4>
     <p>At the start of each turn, a newspaper shows you what's happening nationally. Some turns bring a specific event you'll need to respond to. Not everything is in your control: that's the point.</p>
     <h4>At the end</h4>
@@ -396,8 +401,12 @@
 
   <div class="setup-fields">
     <div>
-      <label for="spouseNameInput">Your spouse's name</label>
-      <input type="text" id="spouseNameInput" maxlength="20">
+      <label for="fatherNameInput">Your father's name</label>
+      <input type="text" id="fatherNameInput" maxlength="20">
+    </div>
+    <div>
+      <label for="motherNameInput">Your mother's name</label>
+      <input type="text" id="motherNameInput" maxlength="20">
     </div>
     <div>
       <label for="sonNameInput">Your son's name (draft age)</label>
@@ -528,13 +537,15 @@ function money(n){ return "$" + Math.round(n).toLocaleString(); }
 const CONFIG = {
   START_STATS: { cash:45, health:80, morale:75, trust:65, bonds:0 },
   RATION_RISK_CAUGHT: 0.22,
+  HEALTH_WARNING_THRESHOLD: 30,
 
   REFLECTION_QUESTIONS: [
     "Which rationed good was hardest for your household to do without, and why do you think the government targeted that specific item for rationing?",
     "Did you ever turn to the black market? What did your household gain, and what did it cost in community standing? In general, who profits from a black market, and who is harmed by it?",
-    "How did the draft affect your household directly? If you faced a choice about a deferment or exemption, what did you decide, and would you decide differently now, knowing what you know about the war?",
-    "How did your household's story reflect the changing role of women during the war? What changed for your spouse, and what happened to that opportunity once the war ended?",
-    "Historians often say war is profitable, for someone. Where in your playthrough did you see profit and hardship existing side by side? Who benefited, and who paid the price?"
+    "The draft touched your household twice: first when your father was called, with no choice in the matter, and later when your son's number came up and you faced a real choice about buying his way out. How did those two moments feel different, and what does that difference tell you about who the draft touched hardest as the war dragged on?",
+    "How did your household's story reflect the changing role of women during the war? What changed for your mother, and what happened to that opportunity once the war ended?",
+    "Historians often say war is profitable, for someone. Where in your playthrough did you see profit and hardship existing side by side? Who benefited, and who paid the price?",
+    "If your household's Health ever dropped into the danger zone (or reached zero), what choices led there? What would your family have had to give up earlier to avoid it?"
   ],
 
   CAMPAIGNS: {}
@@ -560,6 +571,24 @@ function computeRationOption(res, choiceKey, S){
   return { buy, cost, healthD:1, moraleD:1, trustD:-4, caughtRisk:CONFIG.RATION_RISK_CAUGHT };
 }
 
+/* ---- Shared casualty-roll builder (used for both father and son) ---- */
+function buildCasualtyEvent(S, opts){
+  // opts: { name, statusField, dateTag, servingText, woundedText, killedText, servingTitle }
+  const roll = Math.random();
+  let outcome, text, hD=0, mD=0, tD=0;
+  if(roll < 0.65){ outcome="serving"; text=opts.servingText; mD=5; }
+  else if(roll < 0.90){ outcome="wounded"; text=opts.woundedText; hD=-6; mD=-10; }
+  else { outcome="killed"; text=opts.killedText; hD=-10; mD=-25; tD=5; }
+  return {
+    title: outcome==="killed" ? "A Telegram" : (outcome==="wounded" ? "A Telegram" : opts.servingTitle),
+    dateTag: opts.dateTag,
+    body:[text],
+    choices:null,
+    onEnd:(S)=>{ S[opts.statusField]=outcome; S.health=clamp(S.health+hD,0,100); S.morale=clamp(S.morale+mD,0,100); S.trust=clamp(S.trust+tD,0,100);
+      return outcome==="serving" ? "Relief, for now." : (outcome==="wounded" ? "He's alive, but the war has marked him." : "Your household joins the list of Gold Star families."); }
+  };
+}
+
 /* =========================================================================
    CAMPAIGN DATA: WORLD WAR I
 ========================================================================= */
@@ -568,12 +597,13 @@ CONFIG.CAMPAIGNS.wwi = {
   name:"World War I",
   years:"1917 – 1918",
   tag:"US History · The Home Front",
-  blurb:"America enters a European war it swore to stay out of. Herbert Hoover asks families to “Hooverize.” The first modern military draft in a generation reaches into small towns everywhere.",
+  blurb:"America enters a European war it swore to stay out of. Herbert Hoover asks families to “Hooverize.” The first modern military draft in a generation reaches into small towns everywhere, fathers and sons alike.",
   bullets:["8 turns, April 1917 to November 1918","Rationed: wheat, sugar, meat, and coal","Features the Selective Service draft lottery and the 1918 flu"],
-  setupBlurb:"You're past draft age yourself, so the war reaches your household through your family instead of your own service.",
-  setupNote:"You'll run this household as its head: too old for the Selective Service Act's draft age (21 to 30), but not too old to feel every shortage, every headline, and every letter that comes from your son's unit overseas.",
+  setupBlurb:"You're managing the whole household as the draft reaches first your father, then, later, your son.",
+  setupNote:"You'll run this household through the war: a father who is called up early, whether the family is ready or not, a mother who keeps things running and later takes on new work, a son of draft age whose own number comes up later, and younger children too young for either the workforce or the front.",
   paperName:"The Weekly Clarion",
-  defaultSpouseName:"Margaret",
+  defaultFatherName:"Henry",
+  defaultMotherName:"Margaret",
   defaultSonName:"Thomas",
   resources:[
     { id:"wheat", name:"Flour & Wheat", icon:"🌾", baseNeed:6, basePrice:1.0 },
@@ -583,7 +613,9 @@ CONFIG.CAMPAIGNS.wwi = {
   ],
   incomeBase: 28,
   incomeVariance: 6,
-  spouseWorkBonus: 15,
+  fatherIncomeLoss: 16,
+  familyAllotment: 6,
+  motherWorkBonus: 15,
   turns:[
     { label:"Turn 1", date:"April 1917",
       headlines:[
@@ -594,18 +626,18 @@ CONFIG.CAMPAIGNS.wwi = {
     },
     { label:"Turn 2", date:"June 1917",
       headlines:[
-        "Registration Day: every man aged 21 to 30 must register for the draft.",
-        "Your son registers at the town hall along with hundreds of others.",
+        "Registration Day: every man of fighting age must register for the draft.",
+        "Your father and your son register at the town hall along with hundreds of others.",
         "The Committee on Public Information papers the town with war posters."
       ],
       event: (S)=>({
         title:"Registration Day",
         dateTag:"June 5, 1917",
         body:[
-          `${S.sonName} walks to the town hall with the other young men of the county to register for the draft, as the new Selective Service Act requires. There's no getting around it, and no decision to make yet, only the number he's assigned and the waiting that follows.`
+          `${S.fatherName} and ${S.sonName} walk to the town hall together, father and son, to register for the draft as the new Selective Service Act requires. There's no getting around it, and no decision to make yet, only the numbers they're assigned and the waiting that follows.`
         ],
         choices:null,
-        onEnd:(S)=>{ S.flags.sonRegistered = true; S.sonStatus = "registered"; return "Your son is registered for the draft."; }
+        onEnd:(S)=>{ S.fatherStatus="registered"; S.sonStatus="registered"; return `${S.fatherName} and ${S.sonName} are both registered for the draft.`; }
       })
     },
     { label:"Turn 3", date:"September 1917",
@@ -614,7 +646,17 @@ CONFIG.CAMPAIGNS.wwi = {
         "“Food will win the war,” reads the new poster in the grocer's window.",
         "Liberty Bond drive posters appear alongside the food posters."
       ],
-      rationCuts:{ wheat:0.7, meat:0.75 }
+      rationCuts:{ wheat:0.7, meat:0.75 },
+      event: (S)=>({
+        title:"Your Father Is Called",
+        dateTag:"September 1917",
+        body:[
+          `The letter every household on the block has been dreading finally comes to yours. ${S.fatherName}'s number has been called. He's older than most of the men shipping out this month, and head of a household besides, but the war effort needs more men than the young and unmarried can supply. He has three weeks to report.`,
+          "There's no form to fill out for an exemption this time. He goes."
+        ],
+        choices:null,
+        onEnd:(S)=>{ S.fatherStatus="drafted"; return `${S.fatherName} is drafted and reports for training within the month. The household loses its main earner overnight.`; }
+      })
     },
     { label:"Turn 4", date:"December 1917",
       headlines:[
@@ -623,20 +665,28 @@ CONFIG.CAMPAIGNS.wwi = {
         "Casualty lists from the front now run in the newspaper every week."
       ],
       seasonal:{ coal:1.4 },
-      event: (S)=>({
-        title:"The Draft Lottery",
-        dateTag:"December 1917",
-        body:[
-          `Blindfolded officials in Washington draw capsules from a glass bowl, assigning order numbers to every registered man in the country. It's broadcast nationwide, and by evening the local paper has posted the list outside its office. ${S.sonName}'s number comes up near the top of the list: he will almost certainly be called.`,
-          `Before the notice even arrives, a neighbor pulls you aside. He knows a doctor in the next county who, for a fee, will write up papers claiming a medical condition that would keep a young man out of uniform entirely. It happens more than the papers admit. It is also, plainly, against the law.`
-        ],
-        choices:[
-          { label:"Pay for the exemption papers", desc:"Spend $18. Your son stays home, no matter what the war costs elsewhere. If it's discovered later, your standing in town will suffer for it.",
-            apply:(S)=>{ S.cash-=18; S.flags.exemptionPursued=true; S.sonStatus="exempted"; return `You pay for the papers. ${S.sonName} will not be called. You tell yourself it's for the family.`; } },
-          { label:"Let him be called, like everyone else's son", desc:"No cost now. He'll ship out with his unit when his number comes up, and you'll wait for letters like every other family on the block.",
-            apply:(S)=>{ S.flags.exemptionPursued=false; S.sonStatus="drafted"; S.trust=clamp(S.trust+3,0,100); return `You let the number stand. ${S.sonName} will report when he's called.`; } }
-        ]
-      })
+      events: [
+        (S)=> buildCasualtyEvent(S, {
+          name:S.fatherName, statusField:"fatherStatus", dateTag:"December 1917", servingTitle:"A Letter From France",
+          servingText:`A letter arrives from ${S.fatherName}, water-stained and heavily crossed out by the censor. He's alive, exhausted, and asking after home. It's not much, but it's everything.`,
+          woundedText:`A telegram arrives before any letter does: ${S.fatherName} was wounded near Château-Thierry and is recovering in a field hospital. He'll live, the telegram says. It doesn't say much else.`,
+          killedText:`The telegram every family on the block dreads finally comes to your door. ${S.fatherName} was killed in action near Belleau Wood. A gold star will hang in your window from now on.`
+        }),
+        (S)=>({
+          title:"The Draft Lottery",
+          dateTag:"December 1917",
+          body:[
+            `With ${S.fatherName} already gone, word comes that ${S.sonName}'s own number has been drawn in this round's Selective Service lottery. Blindfolded officials in Washington drew the capsules; by evening the local paper had posted the list outside its office. He will almost certainly be called too.`,
+            `Before the notice even arrives, a neighbor pulls you aside. He knows a doctor in the next county who, for a fee, will write up papers claiming a medical condition that would keep a young man out of uniform entirely. It happens more than the papers admit. It is also, plainly, against the law.`
+          ],
+          choices:[
+            { label:"Pay for the exemption papers", desc:"Spend $18. Your son stays home, no matter what the war costs elsewhere. If it's discovered later, your standing in town will suffer for it.",
+              apply:(S)=>{ S.cash-=18; S.flags.exemptionPursued=true; S.sonStatus="exempted"; return `You pay for the papers. ${S.sonName} will not be called. You tell yourself it's for the family, especially with ${S.fatherName} already gone.`; } },
+            { label:"Let him be called, like everyone else's son", desc:"No cost now. He'll ship out with his unit when his number comes up, and you'll wait for letters like every other family on the block.",
+              apply:(S)=>{ S.flags.exemptionPursued=false; S.sonStatus="drafted"; S.trust=clamp(S.trust+3,0,100); return `You let the number stand. ${S.sonName} will report when he's called.`; } }
+          ]
+        })
+      ]
     },
     { label:"Turn 5", date:"March 1918",
       headlines:[
@@ -649,11 +699,11 @@ CONFIG.CAMPAIGNS.wwi = {
         title:"A New Job",
         dateTag:"March 1918",
         body:[
-          `With so many men gone and war orders piling up at the plant downtown, ${S.spouseName} comes home with news: they're hiring women on the production line, and the pay is better than anything available otherwise. It means long hours and a job nobody would have offered a year ago.`,
+          `With ${S.fatherName} gone and war orders piling up at the plant downtown, ${S.motherName} comes home with news: they're hiring women on the production line, and the pay is better than anything available otherwise. It means long hours and a job nobody would have offered her a year ago, on top of running the household alone.`,
           `At the same town meeting, talk turns to a local steel executive whose company has landed a string of fat government contracts. His new house is the largest on the river. Someone mutters that war is good for somebody's business, even if it's hard on everyone else's.`
         ],
         choices:null,
-        onEnd:(S)=>{ S.spouseWorking = true; S.spouseEverWorked = true; S.morale = clamp(S.morale+5,0,100); return `${S.spouseName} starts work at the munitions plant. Household income rises, but so does the workload at home.`; }
+        onEnd:(S)=>{ S.motherWorking = true; S.motherEverWorked = true; S.morale = clamp(S.morale+5,0,100); return `${S.motherName} starts work at the munitions plant. Household income rises, but so does the workload at home.`; }
       })
     },
     { label:"Turn 6", date:"June 1918",
@@ -684,22 +734,15 @@ CONFIG.CAMPAIGNS.wwi = {
               `${S.sonName} stays home, safe, while the casualty lists in the paper grow longer with other families' sons. You keep telling yourself it was the right call. Some nights, that's harder to believe than others.`
             ],
             choices:null,
-            onEnd:(S)=>{ return "Your household is spared the letters other families are receiving."; }
+            onEnd:(S)=>{ return "Your household is spared a second set of letters from the front."; }
           };
         }
-        const roll = Math.random();
-        let outcome, text, hD=0, mD=0, tD=0;
-        if(roll < 0.65){ outcome="serving"; text=`A letter arrives from ${S.sonName}, water-stained and heavily crossed out by the censor. He's alive, exhausted, and asking after home. It's not much, but it's everything.`; mD=5; }
-        else if(roll < 0.90){ outcome="wounded"; text=`A telegram arrives before any letter does: ${S.sonName} was wounded near Château-Thierry and is recovering in a field hospital. He'll live, the telegram says. It doesn't say much else.`; hD=-6; mD=-10; }
-        else { outcome="killed"; text=`The telegram every family on the block dreads finally comes to your door. ${S.sonName} was killed in action near Belleau Wood. A gold star will hang in your window from now on.`; hD=-10; mD=-25; tD=5; }
-        return {
-          title: outcome==="killed" ? "A Telegram" : (outcome==="wounded" ? "A Telegram" : "A Letter From France"),
-          dateTag:"June 1918",
-          body:[text],
-          choices:null,
-          onEnd:(S)=>{ S.sonStatus=outcome; S.health=clamp(S.health+hD,0,100); S.morale=clamp(S.morale+mD,0,100); S.trust=clamp(S.trust+tD,0,100);
-            return outcome==="serving" ? "Relief, for now." : (outcome==="wounded" ? "Your son is alive, but the war has marked him." : "Your household joins the list of Gold Star families."); }
-        };
+        return buildCasualtyEvent(S, {
+          name:S.sonName, statusField:"sonStatus", dateTag:"June 1918", servingTitle:"A Letter From France",
+          servingText:`A letter arrives from ${S.sonName}, water-stained and heavily crossed out by the censor. He's alive, exhausted, and asking after home. It's not much, but it's everything.`,
+          woundedText:`A telegram arrives before any letter does: ${S.sonName} was wounded near Château-Thierry and is recovering in a field hospital. He'll live, the telegram says. It doesn't say much else.`,
+          killedText:`The telegram every family on the block dreads finally comes to your door. ${S.sonName} was killed in action near Belleau Wood. A second gold star will hang in your window from now on.`
+        });
       }
     },
     { label:"Turn 7", date:"September 1918",
@@ -745,10 +788,11 @@ CONFIG.CAMPAIGNS.wwii = {
   tag:"US History · The Home Front",
   blurb:"Pearl Harbor pulls America into a war on two oceans. Ration books, victory gardens, and scrap drives become daily life, while a Japanese American family down the street is ordered from their home.",
   bullets:["10 turns, December 1941 to August 1945","Rationed: sugar, meat, gasoline, and coffee","Features Executive Order 9066, D-Day, and Rosie the Riveter"],
-  setupBlurb:"You're managing the household from home while the war reaches into every part of daily life.",
-  setupNote:"You'll run this household as its head: past the age the draft calls first, but not past the reach of ration books, scrap drives, and a son who will register the moment he turns eighteen.",
+  setupBlurb:"You're managing the whole household as the draft reaches first your father, then, later, your son.",
+  setupNote:"You'll run this household through the war: a father who is called up almost immediately after Pearl Harbor, a mother who keeps things running and later takes on new work of her own, a son of draft age whose own number comes up later, and younger children too young for either the workforce or the front.",
   paperName:"The Home Front Bulletin",
-  defaultSpouseName:"Dorothy",
+  defaultFatherName:"Robert",
+  defaultMotherName:"Dorothy",
   defaultSonName:"James",
   resources:[
     { id:"sugar",    name:"Sugar", icon:"🍬", baseNeed:3, basePrice:1.5 },
@@ -758,14 +802,26 @@ CONFIG.CAMPAIGNS.wwii = {
   ],
   incomeBase: 30,
   incomeVariance: 6,
-  spouseWorkBonus: 18,
+  fatherIncomeLoss: 18,
+  familyAllotment: 7,
+  motherWorkBonus: 18,
   turns:[
     { label:"Turn 1", date:"December 1941",
       headlines:[
         "Japan attacks Pearl Harbor; Congress declares war within a day.",
         "Recruiting stations report lines around the block by morning.",
         "The Selective Training and Service Act draft is expanded overnight."
-      ]
+      ],
+      event: (S)=>({
+        title:"Your Father Is Called",
+        dateTag:"December 1941",
+        body:[
+          `The shock of Pearl Harbor hasn't even worn off before ${S.fatherName}'s notice arrives. The expanded draft reaches further than it did a week ago, and further than anyone expected it to reach a man with a family already. He reports within the month.`,
+          "There's no form to fill out for an exemption this time. He goes."
+        ],
+        choices:null,
+        onEnd:(S)=>{ S.fatherStatus="drafted"; return `${S.fatherName} is drafted and reports for training almost immediately. The household loses its main earner overnight.`; }
+      })
     },
     { label:"Turn 2", date:"February 1942",
       headlines:[
@@ -797,7 +853,13 @@ CONFIG.CAMPAIGNS.wwii = {
         "Meat, gasoline, and coffee join the rationed list this month.",
         "Scrap metal drives collect old pots, tires, and fencing for the war effort."
       ],
-      rationCuts:{ meat:0.7, gasoline:0.5 }
+      rationCuts:{ meat:0.7, gasoline:0.5 },
+      event: (S)=> buildCasualtyEvent(S, {
+        name:S.fatherName, statusField:"fatherStatus", dateTag:"May 1942", servingTitle:"A V-Mail Letter",
+        servingText:`A V-mail letter arrives from ${S.fatherName}, photographed down to a tiny slip of film to save cargo space. He's alive, exhausted, and asking after home. It's not much, but it's everything.`,
+        woundedText:`A telegram arrives before any letter does: ${S.fatherName} was wounded in the fighting and is recovering at a field hospital. He'll live, the telegram says. It doesn't say much else.`,
+        killedText:`The telegram every family on the block dreads finally comes to your door. ${S.fatherName} was killed in action. A gold star will hang in your window from now on.`
+      })
     },
     { label:"Turn 4", date:"September 1942",
       headlines:[
@@ -810,7 +872,7 @@ CONFIG.CAMPAIGNS.wwii = {
         title:"The Draft Lottery",
         dateTag:"September 1942",
         body:[
-          `${S.sonName}'s number is drawn early in this round's lottery. His notice will arrive within weeks unless something changes that.`,
+          `With ${S.fatherName} already overseas, ${S.sonName}'s number is drawn early in this round's lottery. His notice will arrive within weeks unless something changes that.`,
           "A cousin who works at the draft board mentions, carefully, that an essential-industry deferment could be arranged, on paper, if the family were willing to make it worth the board's while. It would keep him home. It would also be a lie."
         ],
         choices:[
@@ -831,12 +893,12 @@ CONFIG.CAMPAIGNS.wwii = {
         title:"A New Job, A New Garden",
         dateTag:"January 1943",
         body:[
-          `${S.spouseName} comes home with a job at the aircraft plant across town, riveting wing panels on a line that runs around the clock. It's loud, physical work nobody would have hired a woman to do two years ago, and it pays better than anything available otherwise.`,
+          `With ${S.fatherName} gone and the family stretched thin, ${S.motherName} comes home with a job at the aircraft plant across town, riveting wing panels on a line that runs around the clock. It's loud, physical work nobody would have hired a woman to do two years ago, and it pays better than anything available otherwise.`,
           "At the same time, the backyard is going over to a Victory Garden: tomatoes and beans where the lawn used to be, like millions of other households this year."
         ],
         choices:null,
-        onEnd:(S)=>{ S.spouseWorking=true; S.spouseEverWorked=true; S.morale=clamp(S.morale+5,0,100); S.needReduction.sugar=(S.needReduction.sugar||0)+1; S.needReduction.meat=(S.needReduction.meat||0)+1;
-          return `${S.spouseName} starts work at the aircraft plant, and your Victory Garden starts easing the strain on your sugar and meat rations.`; }
+        onEnd:(S)=>{ S.motherWorking=true; S.motherEverWorked=true; S.morale=clamp(S.morale+5,0,100); S.needReduction.sugar=(S.needReduction.sugar||0)+1; S.needReduction.meat=(S.needReduction.meat||0)+1;
+          return `${S.motherName} starts work at the aircraft plant, and your Victory Garden starts easing the strain on your sugar and meat rations.`; }
       })
     },
     { label:"Turn 6", date:"June 1943",
@@ -889,22 +951,15 @@ CONFIG.CAMPAIGNS.wwii = {
               `${S.sonName} stays home while the newsreels show the invasion beaches and the casualty lists grow in the paper. You keep telling yourself it was the right call. Some nights, that's harder to believe than others.`
             ],
             choices:null,
-            onEnd:(S)=>{ return "Your household is spared the letters other families are receiving."; }
+            onEnd:(S)=>{ return "Your household is spared a second set of letters from the front."; }
           };
         }
-        const roll = Math.random();
-        let outcome, text, hD=0, mD=0, tD=0;
-        if(roll < 0.65){ outcome="serving"; text=`A V-mail letter arrives from ${S.sonName}, photographed down to a tiny slip of film to save cargo space. He landed in France days after the initial invasion, and he's exhausted but whole. It's not much, but it's everything.`; mD=5; }
-        else if(roll < 0.90){ outcome="wounded"; text=`A telegram arrives before any letter does: ${S.sonName} was wounded in the fighting inland from the beaches and is recovering at a field hospital. He'll live, the telegram says. It doesn't say much else.`; hD=-6; mD=-10; }
-        else { outcome="killed"; text=`The telegram every family on the block dreads finally comes to your door. ${S.sonName} was killed in the fighting in Normandy. A gold star will hang in your window from now on.`; hD=-10; mD=-25; tD=5; }
-        return {
-          title: outcome==="serving" ? "A Letter From France" : "A Telegram",
-          dateTag:"June 1944",
-          body:[text],
-          choices:null,
-          onEnd:(S)=>{ S.sonStatus=outcome; S.health=clamp(S.health+hD,0,100); S.morale=clamp(S.morale+mD,0,100); S.trust=clamp(S.trust+tD,0,100);
-            return outcome==="serving" ? "Relief, for now." : (outcome==="wounded" ? "Your son is alive, but the war has marked him." : "Your household joins the list of Gold Star families."); }
-        };
+        return buildCasualtyEvent(S, {
+          name:S.sonName, statusField:"sonStatus", dateTag:"June 1944", servingTitle:"A Letter From France",
+          servingText:`A V-mail letter arrives from ${S.sonName}, photographed down to a tiny slip of film to save cargo space. He landed in France days after the initial invasion, and he's exhausted but whole. It's not much, but it's everything.`,
+          woundedText:`A telegram arrives before any letter does: ${S.sonName} was wounded in the fighting inland from the beaches and is recovering at a field hospital. He'll live, the telegram says. It doesn't say much else.`,
+          killedText:`The telegram every family on the block dreads finally comes to your door. ${S.sonName} was killed in the fighting in Normandy. A second gold star will hang in your window from now on.`
+        });
       }
     },
     { label:"Turn 8", date:"December 1944",
@@ -947,35 +1002,46 @@ CONFIG.CAMPAIGNS.wwii = {
 let S = null;
 let turnChoices = {}; // {resourceId: 'without'|'fair'|'blackmarket'}
 let bondChoice = 0;
-let awaitingEventChain = [];
 
-function newFamilyStatusText(){
-  const c = S.campaign;
-  const sonLine = (()=>{
-    switch(S.sonStatus){
-      case "not-registered": return `Awaiting registration.`;
-      case "registered": return `Registered for the draft, not yet called.`;
-      case "exempted": return `Home, thanks to an arranged deferment.`;
-      case "drafted": return `Awaiting orders to report.`;
-      case "serving": return `Serving overseas.`;
-      case "wounded": return `Wounded, recovering; expected to survive.`;
-      case "killed": return `Killed in action.`;
-      case "returned": return `Home safe, the war behind him.`;
-      default: return `At home.`;
-    }
-  })();
-  const spouseLine = S.spouseWorking
-    ? `Working outside the home; household income is higher for it.`
-    : `Managing the household.`;
-  return { sonLine, spouseLine };
+function personStatusLine(status){
+  switch(status){
+    case "not-registered": return `Not yet registered.`;
+    case "registered": return `Registered for the draft, not yet called.`;
+    case "exempted": return `Home, thanks to an arranged deferment.`;
+    case "drafted": return `Awaiting orders to report.`;
+    case "serving": return `Serving overseas.`;
+    case "wounded": return `Wounded, recovering; expected to survive.`;
+    case "killed": return `Killed in action.`;
+    case "returned": return `Home safe, the war behind him.`;
+    default: return `At home.`;
+  }
+}
+function isAwayOrGone(status){
+  return status==="drafted" || status==="serving" || status==="wounded" || status==="killed";
 }
 
-function initGame(campaignId, spouseName, sonName){
+function newFamilyStatusText(){
+  const fatherLine = personStatusLine(S.fatherStatus);
+  const sonLine = personStatusLine(S.sonStatus);
+  const motherLine = S.motherWorking
+    ? `Working outside the home; household income is higher for it.`
+    : `Managing the household.`;
+  const anyoneAway = isAwayOrGone(S.fatherStatus) || isAwayOrGone(S.sonStatus);
+  const childrenLine = S.childDied
+    ? `The household is mourning a loss at home.`
+    : (anyoneAway
+      ? `Too young to serve or work; missing their father and brother, and pitching in with scrap drives and ration-stamp books.`
+      : `Too young to serve or work; mostly unaware of what's coming.`);
+  return { fatherLine, motherLine, sonLine, childrenLine };
+}
+
+function initGame(campaignId, fatherName, motherName, sonName){
   const campaign = CONFIG.CAMPAIGNS[campaignId];
   S = {
     campaign,
     campaignId,
-    spouseName: spouseName || campaign.defaultSpouseName,
+    fatherName: fatherName || campaign.defaultFatherName,
+    motherName: motherName || campaign.defaultMotherName,
     sonName: sonName || campaign.defaultSonName,
     turnIndex: 0, // 0-based into campaign.turns
     cash: CONFIG.START_STATS.cash,
@@ -985,12 +1051,16 @@ function initGame(campaignId, spouseName, sonName){
     bonds: CONFIG.START_STATS.bonds,
     rationMultiplier: {},
     needReduction: {},
-    spouseWorking: false,
-    spouseEverWorked: false,
+    motherWorking: false,
+    motherEverWorked: false,
+    fatherStatus: "not-registered",
     sonStatus: "not-registered",
     flags: {},
     blackMarketUses: 0,
     caughtCount: 0,
+    healthWarned: false,
+    tragedyTriggered: false,
+    childDied: false,
     log: [],
     decisionLog: [], // for print summary
     gameOver:false
@@ -1010,6 +1080,68 @@ function addLog(text, cls){
 }
 function addDecision(turnLabel, text){
   S.decisionLog.push({turn:turnLabel, text});
+}
+
+/* =========================================================================
+   HEALTH WARNING / TRAGEDY
+========================================================================= */
+function checkVitalsThenContinue(afterFn){
+  if(S.tragedyTriggered){ afterFn(); return; }
+  if(S.health <= 0){
+    S.tragedyTriggered = true;
+    triggerFamilyDeath();
+    return;
+  }
+  if(S.health <= CONFIG.HEALTH_WARNING_THRESHOLD){
+    if(!S.healthWarned){
+      S.healthWarned = true;
+      showHealthWarning(afterFn);
+      return;
+    }
+  } else {
+    S.healthWarned = false;
+  }
+  afterFn();
+}
+
+function showHealthWarning(afterFn){
+  const t = S.campaign.turns[S.turnIndex] || S.campaign.turns[S.campaign.turns.length-1];
+  document.getElementById("eventDateTag").textContent = t.date;
+  document.getElementById("eventTitle").textContent = "A Warning Sign";
+  document.getElementById("eventBody").innerHTML =
+    `<p>Your family's health has fallen dangerously low. If it reaches zero, the household will lose someone at home, not just at the front.</p>
+     <p>It isn't too late to change course: go easier on going without, and think twice before leaning on the black market again.</p>`;
+  document.getElementById("eventChoices").innerHTML = "";
+  const continueBtn = document.getElementById("eventContinueBtn");
+  continueBtn.style.display = "block";
+  continueBtn.onclick = ()=>{
+    document.getElementById("eventModal").classList.remove("open");
+    afterFn();
+  };
+  document.getElementById("eventModal").classList.add("open");
+  addLog(`${t.date}: Warning — your family's health is critically low.`, "bad");
+}
+
+function triggerFamilyDeath(){
+  const t = S.campaign.turns[S.turnIndex] || S.campaign.turns[S.campaign.turns.length-1];
+  document.getElementById("eventDateTag").textContent = t.date;
+  document.getElementById("eventTitle").textContent = "A Family Lost";
+  document.getElementById("eventBody").innerHTML =
+    `<p>The shortages finally take more than anyone at home could spare. Between the cold, the empty pantry, and the illness going around, your youngest child doesn't recover.</p>
+     <p>There is no ration stamp for grief. The rest of the household carries the war forward without them.</p>`;
+  document.getElementById("eventChoices").innerHTML = "";
+  const continueBtn = document.getElementById("eventContinueBtn");
+  continueBtn.style.display = "block";
+  continueBtn.onclick = ()=>{
+    S.childDied = true;
+    const resultText = "Your household suffers a death at home: your youngest child is gone.";
+    addLog(`${t.date}: ${resultText}`, "bad");
+    addDecision(t.label + " (" + t.date + ")", resultText);
+    document.getElementById("eventModal").classList.remove("open");
+    renderTopbar(); renderFamilyPanel();
+    finishGame();
+  };
+  document.getElementById("eventModal").classList.add("open");
 }
 
 /* =========================================================================
@@ -1047,12 +1179,14 @@ function afterHerald(t){
     runFinalSequence();
     return;
   }
-  if(t.event){
-    const ev = typeof t.event === "function" ? t.event(S) : t.event;
-    runEvent(ev, t, ()=>{ enterMainTurnUI(t); });
-  } else {
-    enterMainTurnUI(t);
+  const eventFns = t.events ? t.events.slice() : (t.event ? [t.event] : []);
+  function runNextEvent(){
+    if(eventFns.length === 0){ enterMainTurnUI(t); return; }
+    const fn = eventFns.shift();
+    const ev = typeof fn === "function" ? fn(S) : fn;
+    runEvent(ev, t, runNextEvent);
   }
+  runNextEvent();
 }
 
 function runEvent(ev, t, onDone){
@@ -1067,7 +1201,7 @@ function runEvent(ev, t, onDone){
     if(resultText) addLog(`${t.date}: ${resultText}`, "event");
     if(resultText) addDecision(t.label + " (" + t.date + ")", resultText);
     document.getElementById("eventModal").classList.remove("open");
-    onDone();
+    checkVitalsThenContinue(onDone);
   }
 
   if(ev.choices && ev.choices.length){
@@ -1108,7 +1242,6 @@ function enterMainTurnUI(t){
 }
 
 function updateEndTurnEnabled(){
-  const t = S.campaign.turns[S.turnIndex];
   const allChosen = S.campaign.resources.every(r=> turnChoices[r.id]);
   document.getElementById("endTurnBtn").disabled = !allChosen;
 }
@@ -1204,7 +1337,11 @@ function resolveTurn(){
 
   // income
   let income = S.campaign.incomeBase + rand(-S.campaign.incomeVariance, S.campaign.incomeVariance);
-  if(S.spouseWorking) income += S.campaign.spouseWorkBonus;
+  if(isAwayOrGone(S.fatherStatus)){
+    income -= S.campaign.fatherIncomeLoss;
+    income += S.campaign.familyAllotment;
+  }
+  if(S.motherWorking) income += S.campaign.motherWorkBonus;
   income = Math.round(income);
   S.cash += income;
 
@@ -1226,10 +1363,12 @@ function resolveTurn(){
 
   renderTopbar();
 
+  function proceed(){ checkVitalsThenContinue(advanceTurn); }
+
   if(caughtEvents.length){
-    showCaughtModal(caughtEvents, ()=>advanceTurn());
+    showCaughtModal(caughtEvents, proceed);
   } else {
-    advanceTurn();
+    proceed();
   }
 }
 
@@ -1268,6 +1407,26 @@ function runFinalSequence(){
     onEnd:()=>""
   });
 
+  // father resolution
+  if(S.fatherStatus === "serving" || S.fatherStatus === "wounded"){
+    chain.push({
+      title:"Your Father Comes Home",
+      dateTag:t.date,
+      body:[ S.fatherStatus==="wounded"
+        ? `${S.fatherName} comes home carrying the war with him: the wound has healed, but not everything about him has. He's alive, and that is not nothing.`
+        : `${S.fatherName} comes home. The war is over for him, and for the household, though it will take time before it feels that way.` ],
+      choices:null,
+      onEnd:(S)=>{ S.fatherStatus="returned"; S.morale=clamp(S.morale+10,0,100); return ""; }
+    });
+  } else if(S.fatherStatus === "killed"){
+    chain.push({
+      title:"An Empty Chair",
+      dateTag:t.date,
+      body:[`The war ends, and ${S.fatherName} does not come home to see it. The gold star in your window stays there.`],
+      choices:null, onEnd:()=>""
+    });
+  }
+
   // son resolution
   if(S.sonStatus === "serving" || S.sonStatus === "wounded"){
     chain.push({
@@ -1288,21 +1447,21 @@ function runFinalSequence(){
     });
   } else if(S.sonStatus === "killed"){
     chain.push({
-      title:"An Empty Chair",
+      title:"A Second Empty Chair",
       dateTag:t.date,
-      body:[`The war ends, and ${S.sonName} does not come home to see it. The gold star in your window stays there.`],
+      body:[`The war ends, and ${S.sonName} does not come home to see it either. A second gold star hangs in your window.`],
       choices:null, onEnd:()=>""
     });
   }
 
-  // spouse resolution
-  if(S.spouseWorking){
+  // mother's job resolution
+  if(S.motherWorking){
     chain.push({
       title:"The Job Ends",
       dateTag:t.date,
-      body:[`With the war over, ${S.spouseName} is let go from the plant within weeks, the job handed to a returning veteran, as the government and most employers made clear it always would be. It's not really a surprise. It doesn't make it sting less.`],
+      body:[`With the war over, ${S.motherName} is let go from the plant within weeks, the job handed to a returning veteran, as the government and most employers made clear it always would be. It's not really a surprise. It doesn't make it sting less.`],
       choices:null,
-      onEnd:(S)=>{ S.spouseWorking=false; S.morale=clamp(S.morale-3,0,100); return ""; }
+      onEnd:(S)=>{ S.motherWorking=false; S.morale=clamp(S.morale-3,0,100); return ""; }
     });
   }
 
@@ -1324,18 +1483,22 @@ function renderTopbar(){
   document.getElementById("turnDateLabel").textContent = t ? t.date : "War's End";
   document.getElementById("statTurn").textContent = (S.turnIndex+1) + "/" + S.campaign.turns.length;
   document.getElementById("statCash").textContent = money(S.cash);
-  document.getElementById("statHealth").textContent = Math.round(S.health);
+  const healthEl = document.getElementById("statHealth");
+  healthEl.textContent = Math.round(S.health);
+  healthEl.classList.toggle("danger", S.health <= CONFIG.HEALTH_WARNING_THRESHOLD);
   document.getElementById("statMorale").textContent = Math.round(S.morale);
   document.getElementById("statTrust").textContent = Math.round(S.trust);
   document.getElementById("statBonds").textContent = money(S.bonds);
 }
 
 function renderFamilyPanel(){
-  const { sonLine, spouseLine } = newFamilyStatusText();
+  const { fatherLine, motherLine, sonLine, childrenLine } = newFamilyStatusText();
   const panel = document.getElementById("familyPanel");
   panel.innerHTML = `
-    <div class="family-card"><div class="who">${S.spouseName} (spouse)</div><div class="status">${spouseLine}</div></div>
+    <div class="family-card"><div class="who">${S.fatherName} (father)</div><div class="status">${fatherLine}</div></div>
+    <div class="family-card"><div class="who">${S.motherName} (mother)</div><div class="status">${motherLine}</div></div>
     <div class="family-card"><div class="who">${S.sonName} (son, draft age)</div><div class="status">${sonLine}</div></div>
+    <div class="family-card"><div class="who">The younger children</div><div class="status">${childrenLine}</div></div>
   `;
 }
 
@@ -1350,6 +1513,9 @@ function renderLogFeed(){
    END SCREEN
 ========================================================================= */
 function computeRank(){
+  if(S.childDied){
+    return { title:"A Home Lost", note:"The war took someone before it even reached the front lines. Rationing wasn't just inconvenience, for some families it was survival." };
+  }
   if(S.caughtCount >= 2 || S.blackMarketUses >= 5){
     return { title:"The Profiteer", note:"Your household got by, but the community noticed exactly how." };
   }
@@ -1358,6 +1524,18 @@ function computeRank(){
   if(avg < 60) return { title:"Just Scraping By", note:"Your household made it through, bruised but standing." };
   if(avg < 80) return { title:"Steadfast at Home", note:"Your household carried its share of the war's weight without breaking." };
   return { title:"Pillar of the Homefront", note:"Few households balanced sacrifice and survival as well as yours." };
+}
+
+function personFateNote(name, status){
+  switch(status){
+    case "returned": return `${name} came home when the war ended.`;
+    case "exempted": return `${name} was never called; he stayed home the whole war.`;
+    case "killed": return `${name} was killed in action and never came home.`;
+    case "wounded": return `${name} was wounded and still recovering when the household's story ends.`;
+    case "serving": return `${name} was still serving overseas when the household's story ends.`;
+    case "drafted": return `${name} had been called up but hadn't yet shipped out when the household's story ends.`;
+    default: return `${name} never ended up serving.`;
+  }
 }
 
 function finishGame(){
@@ -1377,18 +1555,14 @@ function finishGame(){
     ["Times Caught", S.caughtCount]
   ].map(row=>`<tr><td>${row[0]}</td><td>${row[1]}</td></tr>`).join("");
 
-  const sonNote = (()=>{
-    switch(S.sonStatus){
-      case "returned": return `${S.sonName} came home when the war ended.`;
-      case "exempted": return `${S.sonName} was never called; he stayed home the whole war.`;
-      case "killed": return `${S.sonName} was killed in action and never came home.`;
-      default: return `${S.sonName}'s story continued past the final turn.`;
-    }
-  })();
-  const spouseNote = S.spouseEverWorked
-    ? `${S.spouseName} took on new work during the war, then lost that job when the war ended and veterans returned.`
-    : `${S.spouseName} kept the household running throughout the war.`;
-  document.getElementById("endFamilyNote").textContent = sonNote + " " + spouseNote;
+  const parts = [];
+  if(S.childDied) parts.push("Your household lost a child to malnutrition and illness before the war itself even reached them.");
+  parts.push(personFateNote(S.fatherName, S.fatherStatus));
+  parts.push(personFateNote(S.sonName, S.sonStatus));
+  parts.push(S.motherEverWorked
+    ? `${S.motherName} took on new work during the war, then lost that job when the war ended and veterans returned.`
+    : `${S.motherName} kept the household running throughout the war.`);
+  document.getElementById("endFamilyNote").textContent = parts.join(" ");
 
   document.getElementById("historyNote").innerHTML = `
     <b>Why this matters:</b> Rationing, the draft, the black market, and women entering war industries weren't background details of these wars, they were the war for most Americans. Historians estimate roughly 6 million American women entered the workforce during World War II alone, and both wars saw defense contractors post record profits even as households went without sugar and gasoline. Your printed record below turns your choices into discussion material: what would you do differently, and why?
@@ -1404,7 +1578,7 @@ function buildPrintArea(rank){
   const reflections = CONFIG.REFLECTION_QUESTIONS.map(q=>`<li>${q}</li>`).join("");
   area.innerHTML = `
     <h1>Ration Book: Homefront Record</h1>
-    <div class="meta">${S.campaign.name} (${S.campaign.years}) — Household of ${S.spouseName} and ${S.sonName} — Final result: ${rank.title}</div>
+    <div class="meta">${S.campaign.name} (${S.campaign.years}) — Household of ${S.fatherName}, ${S.motherName}, and ${S.sonName} — Final result: ${rank.title}</div>
     <h2>Final Household Stats</h2>
     <table>
       <tr><td>Cash on hand</td><td>${money(S.cash)}</td></tr>
@@ -1456,7 +1630,8 @@ function goToSetup(campaignId){
   document.getElementById("setupEyebrow").textContent = c.name + " · " + c.years;
   document.getElementById("setupBlurb").textContent = c.setupBlurb;
   document.getElementById("setupNote").textContent = c.setupNote;
-  document.getElementById("spouseNameInput").value = c.defaultSpouseName;
+  document.getElementById("fatherNameInput").value = c.defaultFatherName;
+  document.getElementById("motherNameInput").value = c.defaultMotherName;
   document.getElementById("sonNameInput").value = c.defaultSonName;
   showScreen("screen-setup");
 }
@@ -1470,9 +1645,11 @@ document.getElementById("instructionsContinueBtn").onclick = ()=>{
 };
 document.getElementById("reviewInstructionsBtn").onclick = ()=> showScreen("screen-instructions");
 document.getElementById("startGameBtn").onclick = ()=>{
-  const spouseName = document.getElementById("spouseNameInput").value.trim() || CONFIG.CAMPAIGNS[pendingCampaignId].defaultSpouseName;
-  const sonName = document.getElementById("sonNameInput").value.trim() || CONFIG.CAMPAIGNS[pendingCampaignId].defaultSonName;
-  initGame(pendingCampaignId, spouseName, sonName);
+  const c = CONFIG.CAMPAIGNS[pendingCampaignId];
+  const fatherName = document.getElementById("fatherNameInput").value.trim() || c.defaultFatherName;
+  const motherName = document.getElementById("motherNameInput").value.trim() || c.defaultMotherName;
+  const sonName = document.getElementById("sonNameInput").value.trim() || c.defaultSonName;
+  initGame(pendingCampaignId, fatherName, motherName, sonName);
 };
 document.getElementById("endTurnBtn").onclick = ()=>{
   if(document.getElementById("endTurnBtn").disabled) return;
@@ -1484,7 +1661,7 @@ document.getElementById("newCampaignBtn").onclick = ()=>{
   showScreen("screen-campaign");
 };
 document.getElementById("replayBtn").onclick = ()=>{
-  initGame(S.campaignId, S.spouseName, S.sonName);
+  initGame(S.campaignId, S.fatherName, S.motherName, S.sonName);
 };
 
 })();
